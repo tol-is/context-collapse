@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { audio } from '../systems/AudioManager';
+import { addCreditLink } from '../ui/CreditLink';
 
 export default class TitleScene extends Phaser.Scene {
   private gfx!: Phaser.GameObjects.Graphics;
@@ -83,8 +84,8 @@ export default class TitleScene extends Phaser.Scene {
       this.time.delayedCall(22 * promptStr.length + 100, () => { this.promptReady = true; });
     });
 
-    const ctrl = this.add.text(cx, h - 36, '', {
-      ...mono, fontSize: '12px', color: '#334455',
+    const ctrl = this.add.text(cx, h - 44, '', {
+      ...mono, fontSize: '13px', color: '#d8d8d0',
     }).setDepth(10);
     this.time.delayedCall(2000, () => {
       this.typeText(ctrl, 'WASD move  |  SPACE fire  |  E special  |  M mute', 10);
@@ -97,6 +98,7 @@ export default class TitleScene extends Phaser.Scene {
     });
     this.input.keyboard!.on('keydown-M', () => audio.toggleMute());
     this.cameras.main.fadeIn(500, 24, 24, 27);
+    addCreditLink(this);
   }
 
   private typeText(obj: Phaser.GameObjects.Text, text: string, speed: number) {

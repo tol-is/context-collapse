@@ -33,16 +33,16 @@ export default class ClassSelectScene extends Phaser.Scene {
     this.gfx = this.add.graphics().setDepth(0);
     this.previewGfx = this.add.graphics().setDepth(5);
 
-    let cy = 36;
+    let cy = 35;
 
     const header = this.add.text(cx, cy, '', {
-      ...mono, fontSize: '22px', color: '#ffffff', letterSpacing: 2,
+      ...mono, fontSize: '23px', color: '#ffffff', letterSpacing: 2,
     }).setDepth(10);
     this.typeText(header, 'SELECT SYSTEM PROMPT', 18);
     cy += 30;
 
     const subtitle = this.add.text(cx, cy, '', {
-      ...mono, fontSize: '12px', color: '#445566',
+      ...mono, fontSize: '13px', color: '#445566',
     }).setDepth(10);
     this.time.delayedCall(350, () => {
       this.typeText(subtitle, 'Your prompt defines how you fight.', 12);
@@ -52,10 +52,10 @@ export default class ClassSelectScene extends Phaser.Scene {
     for (let i = 0; i < CLASS_ORDER.length; i++) {
       const ly = cy + i * 28;
       const prefix = this.add.text(cx, ly, '', {
-        ...mono, fontSize: '14px', color: '#00aaff',
+        ...mono, fontSize: '15px', color: '#00aaff',
       }).setDepth(10);
       const label = this.add.text(cx + 22, ly, '', {
-        ...mono, fontSize: '14px',
+        ...mono, fontSize: '15px',
       }).setDepth(10);
       this.optionPrefixes.push(prefix);
       this.optionLabels.push(label);
@@ -66,43 +66,37 @@ export default class ClassSelectScene extends Phaser.Scene {
     cy += 16;
 
     this.panelDesc = this.add.text(cx, cy, '', {
-      ...mono, fontSize: '12px', color: '#667788',
+      ...mono, fontSize: '13px', color: '#667788',
       wordWrap: { width: w * 0.55 },
     }).setDepth(10);
     cy += 28;
 
-    this.add.text(cx, cy, 'WEAPON ', {
-      ...mono, fontSize: '11px', color: '#445566',
-    }).setDepth(10);
-    this.panelWeaponVal = this.add.text(cx + 72, cy, '', {
-      ...mono, fontSize: '12px', color: '#00bbdd',
+    this.panelWeaponVal = this.add.text(cx, cy, '', {
+      ...mono, fontSize: '13px', color: '#00bbdd',
     }).setDepth(10);
     cy += 22;
 
-    this.add.text(cx, cy, 'SPECIAL', {
-      ...mono, fontSize: '11px', color: '#445566',
-    }).setDepth(10);
-    this.panelSpecialVal = this.add.text(cx + 72, cy, '', {
-      ...mono, fontSize: '12px', color: '#7722ff',
+    this.panelSpecialVal = this.add.text(cx, cy, '', {
+      ...mono, fontSize: '13px', color: '#7722ff',
     }).setDepth(10);
     cy += 30;
 
     for (let i = 0; i < 4; i++) {
       const t = this.add.text(cx, cy + i * 22, '', {
-        ...mono, fontSize: '12px', color: '#667788',
+        ...mono, fontSize: '13px', color: '#667788',
       }).setDepth(10);
       this.statTexts.push(t);
     }
 
-    const ctrl1 = this.add.text(cx, h - 48, '', {
-      ...mono, fontSize: '12px', color: '#445566',
+    const c1 = this.add.text(cx, h - 48, '', {
+      ...mono, fontSize: '13px', color: '#445566',
     }).setDepth(10);
-    const ctrl2 = this.add.text(cx, h - 28, '', {
-      ...mono, fontSize: '11px', color: '#334455',
+    const c2 = this.add.text(cx, h - 28, '', {
+      ...mono, fontSize: '12px', color: '#334455',
     }).setDepth(10);
     this.time.delayedCall(400, () => {
-      this.typeText(ctrl1, 'W/S select  |  ENTER confirm', 10);
-      this.typeText(ctrl2, 'WASD move  |  SPACE fire  |  E special  |  M mute', 8);
+      this.typeText(c1, 'W/S select  |  ENTER confirm', 10);
+      this.typeText(c2, 'WASD move  |  SPACE fire  |  E special  |  M mute', 8);
     });
 
     this.input.keyboard!.on('keydown-UP', () => this.move(-1));
@@ -172,10 +166,10 @@ export default class ClassSelectScene extends Phaser.Scene {
     this.detailTimers.push(this.typeText(this.panelDesc, stats.desc, spd));
 
     this.panelWeaponVal.setText('');
-    this.detailTimers.push(this.typeText(this.panelWeaponVal, stats.weapon, spd));
+    this.detailTimers.push(this.typeText(this.panelWeaponVal, `WEAPON  ${stats.weapon}`, spd));
 
     this.panelSpecialVal.setText('');
-    this.detailTimers.push(this.typeText(this.panelSpecialVal, stats.special, spd));
+    this.detailTimers.push(this.typeText(this.panelSpecialVal, `SPECIAL ${stats.special}`, spd));
 
     const maxes = { hp: 140, spd: 320, dmg: 25, rate: 12 };
     const barLen = 14;

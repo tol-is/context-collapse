@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { audio } from '../systems/AudioManager';
+import { addCreditLink } from '../ui/CreditLink';
 
 export default class GameOverScene extends Phaser.Scene {
   private gfx!: Phaser.GameObjects.Graphics;
@@ -65,6 +66,7 @@ export default class GameOverScene extends Phaser.Scene {
     });
     this.input.keyboard!.on('keydown-M', () => audio.toggleMute());
     this.cameras.main.fadeIn(500, 24, 24, 27);
+    addCreditLink(this);
   }
 
   private typeText(obj: Phaser.GameObjects.Text, text: string, speed: number) {
