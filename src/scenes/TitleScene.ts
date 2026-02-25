@@ -51,7 +51,7 @@ export default class TitleScene extends Phaser.Scene {
     }).setDepth(10).setAlpha(0);
     this.time.delayedCall(2100, () => {
       sub.setAlpha(1);
-      this.typeText(sub, 'Nothing is real. Survive anyway.', 18);
+      this.typeText(sub, 'Meaning has collapsed. You\'re still here.', 18);
     });
 
     cy += 36;
