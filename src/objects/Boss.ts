@@ -41,7 +41,7 @@ const BOSS_INDEX: Record<BossType, number> = {
   singularity: 6,
 };
 
-const BASE_HP = [400, 650, 850, 1100, 1400, 1800, 2800];
+const BASE_HP = [350, 900, 1200, 1500, 1900, 2400, 3800];
 const SPEED_MULT = [0.85, 1.0, 1.15, 1.3, 1.4, 1.55, 1.7];
 
 interface HexCell {
@@ -216,7 +216,7 @@ export default class Boss extends Phaser.GameObjects.Container {
 
   private initClones(cx: number, cy: number) {
     this.clones = [];
-    const count = 3 + this.phase * 2;
+    const count = 3 + this.phase * 3;
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
       const dist = 80 + Math.random() * 50;
@@ -249,7 +249,7 @@ export default class Boss extends Phaser.GameObjects.Container {
       if (this.phase === 1 && pct < 0.66) this.advancePhase();
       else if (this.phase === 2 && pct < 0.33) this.advancePhase();
     }
-    if (this.bossType === "alignmentProblem" && this.apFriendly && pct < 0.55) {
+    if (this.bossType === "alignmentProblem" && this.apFriendly && pct < 0.85) {
       this.apFriendly = false;
       this.apTransitionTimer = 1000;
       audio.play("bossPhase");
@@ -374,7 +374,7 @@ export default class Boss extends Phaser.GameObjects.Container {
   private updateContentFarm(delta: number, projectiles: Projectile[]) {
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(800, 2200 - this.phase * 500);
+      this.shootTimer = Math.max(800, 2600 - this.phase * 600);
       const aliveCells = this.cells.filter((c) => c.alive);
       if (aliveCells.length > 0) {
         const cell = aliveCells[Math.floor(Math.random() * aliveCells.length)];
@@ -396,12 +396,12 @@ export default class Boss extends Phaser.GameObjects.Container {
         );
       }
     }
-    const rate = 2500 - this.phase * 500;
+    const rate = 2800 - this.phase * 600;
     let alive = 0;
     for (const cell of this.cells) {
       if (!cell.alive) {
         cell.regenTimer += delta;
-        if (cell.regenTimer > 4500 - this.phase * 800) {
+        if (cell.regenTimer > 5500 - this.phase * 1000) {
           cell.alive = true;
           cell.hp = 2;
           cell.regenTimer = 0;
@@ -445,82 +445,55 @@ export default class Boss extends Phaser.GameObjects.Container {
     py: number,
     projectiles: Projectile[]
   ) {
+    const hpPct = this.health / this.maxHealth;
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(
-        600,
-        1600 - (1 - this.health / this.maxHealth) * 700
-      );
+      this.shootTimer = Math.max(450, 1300 - (1 - hpPct) * 600);
       const a = Math.atan2(py - this.y, px - this.x);
       projectiles.push(
-        new Projectile(
-          this.scene,
-          this.x,
-          this.y,
-          Math.cos(a) * 180,
-          Math.sin(a) * 180,
-          8,
-          0xaabbcc,
-          2000,
-          false
-        )
+        new Projectile(this.scene, this.x, this.y, Math.cos(a) * 200, Math.sin(a) * 200, 10, 0xaabbcc, 2000, false)
       );
-      if (this.health / this.maxHealth < 0.35) {
+      if (hpPct < 0.65) {
+        const spread = 0.25;
         projectiles.push(
-          new Projectile(
-            this.scene,
-            this.x,
-            this.y,
-            Math.cos(a + 0.3) * 160,
-            Math.sin(a + 0.3) * 160,
-            6,
-            0x7788bb,
-            1800,
-            false
-          )
+          new Projectile(this.scene, this.x, this.y, Math.cos(a + spread) * 180, Math.sin(a + spread) * 180, 8, 0x7788bb, 1800, false)
         );
         projectiles.push(
-          new Projectile(
-            this.scene,
-            this.x,
-            this.y,
-            Math.cos(a - 0.3) * 160,
-            Math.sin(a - 0.3) * 160,
-            6,
-            0x7788bb,
-            1800,
-            false
-          )
+          new Projectile(this.scene, this.x, this.y, Math.cos(a - spread) * 180, Math.sin(a - spread) * 180, 8, 0x7788bb, 1800, false)
+        );
+      }
+      if (hpPct < 0.30) {
+        const wide = 0.5;
+        projectiles.push(
+          new Projectile(this.scene, this.x, this.y, Math.cos(a + wide) * 160, Math.sin(a + wide) * 160, 7, 0x5566aa, 1600, false)
+        );
+        projectiles.push(
+          new Projectile(this.scene, this.x, this.y, Math.cos(a - wide) * 160, Math.sin(a - wide) * 160, 7, 0x5566aa, 1600, false)
         );
       }
     }
     this.tendrilTimer -= delta;
     this.distortRadius = 70 + Math.sin(this.breathPhase * 0.8) * 10;
-    const tendrilRate = Math.max(
-      300,
-      700 - (1 - this.health / this.maxHealth) * 500
-    );
+    const tendrilRate = Math.max(200, 450 - (1 - hpPct) * 300);
     if (this.tendrilTimer <= 0) {
       this.tendrilTimer = tendrilRate;
-      const count = this.health / this.maxHealth < 0.4 ? 3 : 1;
+      const count = hpPct < 0.4 ? 4 : 2;
       for (let c = 0; c < count; c++) {
         this.tendrils.push({
-          angle:
-            Math.atan2(py - this.y, px - this.x) +
-            (Math.random() - 0.5) * (0.6 + c * 0.5),
+          angle: Math.atan2(py - this.y, px - this.x) + (Math.random() - 0.5) * (0.6 + c * 0.4),
           length: 0,
           age: 0,
-          maxAge: 700 + this.bossIdx * 50,
+          maxAge: 900 + this.bossIdx * 50,
         });
       }
     }
     for (let i = this.tendrils.length - 1; i >= 0; i--) {
       const t = this.tendrils[i];
       t.age += delta;
-      t.length = Math.min(150, t.age * 0.4);
+      t.length = Math.min(180, t.age * 0.45);
       if (t.age > t.maxAge) this.tendrils.splice(i, 1);
     }
-    const moveSpd = 40 * this.spdMult * (delta / 1000);
+    const moveSpd = 85 * this.spdMult * (delta / 1000);
     const angle = Math.atan2(py - this.y, px - this.x);
     this.x += Math.cos(angle) * moveSpd;
     this.y += Math.sin(angle) * moveSpd;
@@ -536,30 +509,31 @@ export default class Boss extends Phaser.GameObjects.Container {
     this.cloneTimer += delta;
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(600, 1800 - this.phase * 400);
-      const shooter =
-        this.clones[Math.floor(Math.random() * this.clones.length)];
-      if (shooter) {
+      this.shootTimer = Math.max(500, 1400 - this.phase * 300);
+      const volleyCount = Math.min(this.clones.length, 1 + this.phase);
+      const indices = [...Array(this.clones.length).keys()];
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+      for (let v = 0; v < volleyCount; v++) {
+        const shooter = this.clones[indices[v]];
+        if (!shooter) continue;
         const a = Math.atan2(py - shooter.y, px - shooter.x);
         projectiles.push(
-          new Projectile(
-            this.scene,
-            shooter.x,
-            shooter.y,
-            Math.cos(a) * 160,
-            Math.sin(a) * 160,
-            5,
-            0x8855ff,
-            2200,
-            false
-          )
+          new Projectile(this.scene, shooter.x, shooter.y, Math.cos(a) * 185, Math.sin(a) * 185, 8, 0x8855ff, 2200, false)
         );
+        if (this.phase >= 3) {
+          projectiles.push(
+            new Projectile(this.scene, shooter.x, shooter.y, Math.cos(a + 0.2) * 170, Math.sin(a + 0.2) * 170, 6, 0x6633dd, 2000, false)
+          );
+        }
       }
     }
-    const moveSpd = (70 + this.phase * 18) * this.spdMult;
+    const moveSpd = (90 + this.phase * 20) * this.spdMult;
     for (const clone of this.clones) {
       const angle = Math.atan2(py - clone.y, px - clone.x);
-      const spd = (clone.real ? moveSpd : moveSpd * 0.8) * (delta / 1000);
+      const spd = (clone.real ? moveSpd : moveSpd * 0.9) * (delta / 1000);
       clone.x += Math.cos(angle) * spd;
       clone.y += Math.sin(angle) * spd;
       clone.alpha =
@@ -589,8 +563,8 @@ export default class Boss extends Phaser.GameObjects.Container {
         this.apSpikes[i] = 0.6 + Math.sin(this.breathPhase * 3.5 + i) * 0.4;
       this.shootTimer -= delta;
       if (this.shootTimer <= 0) {
-        this.shootTimer = 1400;
-        const count = 8 + Math.floor((1 - this.health / this.maxHealth) * 6);
+        this.shootTimer = 1000;
+        const count = 10 + Math.floor((1 - this.health / this.maxHealth) * 10);
         for (let i = 0; i < count; i++) {
           const sa = (i / count) * Math.PI * 2 + this.breathPhase;
           projectiles.push(
@@ -598,9 +572,9 @@ export default class Boss extends Phaser.GameObjects.Container {
               this.scene,
               this.x,
               this.y,
-              Math.cos(sa) * 140,
-              Math.sin(sa) * 140,
-              9,
+              Math.cos(sa) * 165,
+              Math.sin(sa) * 165,
+              12,
               0xff2222,
               2000,
               false
@@ -610,7 +584,7 @@ export default class Boss extends Phaser.GameObjects.Container {
       }
     }
     const angle = Math.atan2(py - this.y, px - this.x);
-    const spd = (this.apFriendly ? 25 : 120 * this.spdMult) * (delta / 1000);
+    const spd = (this.apFriendly ? 25 : 150 * this.spdMult) * (delta / 1000);
     this.x += Math.cos(angle) * spd;
     this.y += Math.sin(angle) * spd;
     this.checkProjectileHits(projectiles);
