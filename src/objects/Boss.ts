@@ -1,0 +1,1118 @@
+import Phaser from "phaser";
+import Projectile from "./Projectile";
+import { audio } from "../systems/AudioManager";
+
+export type BossType =
+  | "contentFarm"
+  | "blackBox"
+  | "hallucinator"
+  | "alignmentProblem"
+  | "overfitEngine"
+  | "promptInjector"
+  | "singularity";
+
+export const BOSS_NAMES: Record<BossType, string> = {
+  contentFarm: "THE CONTENT FARM",
+  blackBox: "THE BLACK BOX",
+  hallucinator: "THE HALLUCINATOR",
+  alignmentProblem: "THE ALIGNMENT PROBLEM",
+  overfitEngine: "THE OVERFIT ENGINE",
+  promptInjector: "THE PROMPT INJECTOR",
+  singularity: "THE SINGULARITY",
+};
+
+export const BOSS_COLORS: Record<BossType, number> = {
+  contentFarm: 0xff2222,
+  blackBox: 0x7788bb,
+  hallucinator: 0x8855ff,
+  alignmentProblem: 0x00c8ff,
+  overfitEngine: 0xffcc00,
+  promptInjector: 0xff44aa,
+  singularity: 0xffffff,
+};
+
+const BOSS_INDEX: Record<BossType, number> = {
+  contentFarm: 0,
+  blackBox: 1,
+  hallucinator: 2,
+  alignmentProblem: 3,
+  overfitEngine: 4,
+  promptInjector: 5,
+  singularity: 6,
+};
+
+const BASE_HP = [400, 650, 850, 1100, 1400, 1800, 2800];
+const SPEED_MULT = [0.85, 1.0, 1.15, 1.3, 1.4, 1.55, 1.7];
+
+interface HexCell {
+  localX: number;
+  localY: number;
+  alive: boolean;
+  hp: number;
+  spawnCd: number;
+  pulse: number;
+  regenTimer: number;
+}
+
+export default class Boss extends Phaser.GameObjects.Container {
+  public bossType: BossType;
+  public health: number;
+  public maxHealth: number;
+  public radius = 60;
+  public isDead = false;
+  public phase = 1;
+  public wantsSpawn = false;
+  public spawnX = 0;
+  public spawnY = 0;
+  public deathCinematic = false;
+  public deathProgress = 0;
+
+  private gfx: Phaser.GameObjects.Graphics;
+  private hpGfx: Phaser.GameObjects.Graphics;
+  private lifetime = 0;
+  private hitFlash = 0;
+  private breathPhase = 0;
+  private bossColor: number;
+  private bossIdx: number;
+  private spdMult: number;
+
+  private cells: HexCell[] = [];
+  private cellSize = 18;
+  private breathWave = 0;
+  private phaseTransition = 0;
+
+  private tendrils: {
+    angle: number;
+    length: number;
+    age: number;
+    maxAge: number;
+  }[] = [];
+  private tendrilTimer = 0;
+  private distortRadius = 0;
+  private shootTimer = 2000;
+  private playerX = 0;
+  private playerY = 0;
+
+  private clones: { x: number; y: number; real: boolean; alpha: number }[] = [];
+  private cloneTimer = 0;
+
+  private apFriendly = true;
+  private apTransitionTimer = 0;
+  private apSpikes: number[] = [];
+
+  private oePatternPhase = 0;
+  private oeShieldAngle = 0;
+
+  private piGlitchTimer = 0;
+  public piGlitchActive = false;
+
+  private singSize = 2;
+  private singRings: {
+    radius: number;
+    speed: number;
+    gapAngle: number;
+    gapSize: number;
+  }[] = [];
+  private singAbsorbed = 0;
+
+  private spawnTimer = 0;
+  private readonly spawnDuration = 800;
+  public get isSpawning() {
+    return this.spawnTimer < this.spawnDuration;
+  }
+
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    type: BossType,
+    zone: number
+  ) {
+    super(scene, x, y);
+    this.bossType = type;
+    this.bossColor = BOSS_COLORS[type];
+    this.bossIdx = BOSS_INDEX[type];
+    this.spdMult = SPEED_MULT[this.bossIdx];
+    const zoneScale = 1 + (zone - 1) * 0.15;
+
+    this.health = Math.round(BASE_HP[this.bossIdx] * zoneScale);
+    this.maxHealth = this.health;
+
+    switch (type) {
+      case "contentFarm":
+        this.radius = 70;
+        this.initContentFarm();
+        break;
+      case "blackBox":
+        this.radius = 50;
+        break;
+      case "hallucinator":
+        this.radius = 35;
+        this.initClones(x, y);
+        break;
+      case "alignmentProblem":
+        this.radius = 45;
+        for (let i = 0; i < 14; i++) this.apSpikes.push(0);
+        break;
+      case "overfitEngine":
+        this.radius = 48;
+        break;
+      case "promptInjector":
+        this.radius = 42;
+        break;
+      case "singularity":
+        this.radius = 10;
+        for (let i = 0; i < 5; i++)
+          this.singRings.push({
+            radius: 30 + i * 20,
+            speed: (i % 2 === 0 ? 1 : -1) * (0.8 + i * 0.3),
+            gapAngle: Math.random() * Math.PI * 2,
+            gapSize: 0.6 - i * 0.06,
+          });
+        break;
+    }
+
+    this.gfx = scene.add.graphics();
+    this.add(this.gfx);
+    this.hpGfx = scene.add.graphics();
+    this.add(this.hpGfx);
+    this.setDepth(5000);
+    this.setAlpha(0);
+    this.shootTimer = this.spawnDuration + 800;
+    scene.add.existing(this as unknown as Phaser.GameObjects.GameObject);
+    audio.play("bossIntro");
+  }
+
+  private initContentFarm() {
+    this.cells = [];
+    const rings = Math.max(1, 3 - this.phase + 1);
+    for (let ring = 0; ring <= rings; ring++) {
+      if (ring === 0) {
+        this.cells.push({
+          localX: 0,
+          localY: 0,
+          alive: true,
+          hp: 3,
+          spawnCd: 2000,
+          pulse: 0,
+          regenTimer: 0,
+        });
+        continue;
+      }
+      for (let i = 0; i < 6 * ring; i++) {
+        const angle = (i / (6 * ring)) * Math.PI * 2;
+        this.cells.push({
+          localX: Math.cos(angle) * ring * this.cellSize * 1.8,
+          localY: Math.sin(angle) * ring * this.cellSize * 1.8,
+          alive: true,
+          hp: 2,
+          spawnCd: 2500 - this.phase * 400,
+          pulse: Math.random() * Math.PI * 2,
+          regenTimer: 0,
+        });
+      }
+    }
+  }
+
+  private initClones(cx: number, cy: number) {
+    this.clones = [];
+    const count = 3 + this.phase * 2;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const dist = 80 + Math.random() * 50;
+      this.clones.push({
+        x: cx + Math.cos(angle) * dist,
+        y: cy + Math.sin(angle) * dist,
+        real: i === 0,
+        alpha: 0.8,
+      });
+    }
+    for (let i = this.clones.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.clones[i], this.clones[j]] = [this.clones[j], this.clones[i]];
+    }
+  }
+
+  takeDamage(amount: number) {
+    if (
+      this.isDead ||
+      this.deathCinematic ||
+      this.spawnTimer < this.spawnDuration
+    )
+      return;
+    this.health -= amount;
+    this.hitFlash = 80;
+    audio.play("bossHit");
+
+    const pct = this.health / this.maxHealth;
+    if (this.bossType === "contentFarm") {
+      if (this.phase === 1 && pct < 0.66) this.advancePhase();
+      else if (this.phase === 2 && pct < 0.33) this.advancePhase();
+    }
+    if (this.bossType === "alignmentProblem" && this.apFriendly && pct < 0.55) {
+      this.apFriendly = false;
+      this.apTransitionTimer = 1000;
+      audio.play("bossPhase");
+    }
+    if (this.bossType === "hallucinator" && this.phase < 3) {
+      if (
+        (this.phase === 1 && pct < 0.66) ||
+        (this.phase === 2 && pct < 0.33)
+      ) {
+        this.phase++;
+        this.initClones(this.x, this.y);
+        audio.play("bossPhase");
+      }
+    }
+    if (this.bossType === "overfitEngine") {
+      if (this.phase === 1 && pct < 0.5) {
+        this.phase = 2;
+        audio.play("bossPhase");
+      }
+    }
+    if (this.bossType === "promptInjector") {
+      if (this.phase === 1 && pct < 0.6) {
+        this.phase = 2;
+        audio.play("bossPhase");
+      } else if (this.phase === 2 && pct < 0.3) {
+        this.phase = 3;
+        audio.play("bossPhase");
+      }
+    }
+    if (this.bossType === "singularity") {
+      if (this.phase === 1 && pct < 0.7) {
+        this.phase = 2;
+        audio.play("bossPhase");
+      } else if (this.phase === 2 && pct < 0.4) {
+        this.phase = 3;
+        audio.play("bossPhase");
+      } else if (this.phase === 3 && pct < 0.15) {
+        this.phase = 4;
+        audio.play("bossPhase");
+      }
+    }
+
+    if (this.health <= 0) {
+      this.health = 0;
+      this.isDead = true;
+      this.deathCinematic = true;
+      this.deathProgress = 0;
+      audio.play("bossDeath");
+    }
+  }
+
+  private advancePhase() {
+    this.phase++;
+    this.phaseTransition = 500;
+    audio.play("bossPhase");
+    if (this.bossType === "contentFarm") this.initContentFarm();
+  }
+
+  update(
+    delta: number,
+    playerX: number,
+    playerY: number,
+    projectiles: Projectile[]
+  ) {
+    if (this.deathCinematic) {
+      this.deathProgress += delta / 2200;
+      this.drawBossDeath();
+      if (this.deathProgress >= 1) this.destroy();
+      return;
+    }
+    if (this.isDead) return;
+
+    if (this.spawnTimer < this.spawnDuration) {
+      this.spawnTimer += delta;
+      const t = Math.min(1, this.spawnTimer / this.spawnDuration);
+      const ease = 1 - Math.pow(1 - t, 3);
+      this.setAlpha(ease);
+      this.setScale(0.6 + 0.4 * ease);
+      this.breathPhase += delta / 1000;
+      this.drawBoss();
+      this.drawBossHealth();
+      return;
+    }
+
+    this.lifetime += delta;
+    this.breathPhase += delta / 1000;
+    if (this.hitFlash > 0) this.hitFlash -= delta;
+    if (this.phaseTransition > 0) this.phaseTransition -= delta;
+    this.wantsSpawn = false;
+    this.playerX = playerX;
+    this.playerY = playerY;
+
+    switch (this.bossType) {
+      case "contentFarm":
+        this.updateContentFarm(delta, projectiles);
+        break;
+      case "blackBox":
+        this.updateBlackBox(delta, playerX, playerY, projectiles);
+        break;
+      case "hallucinator":
+        this.updateHallucinator(delta, playerX, playerY, projectiles);
+        break;
+      case "alignmentProblem":
+        this.updateAlignment(delta, playerX, playerY, projectiles);
+        break;
+      case "overfitEngine":
+        this.updateOverfit(delta, playerX, playerY, projectiles);
+        break;
+      case "promptInjector":
+        this.updatePromptInjector(delta, playerX, playerY, projectiles);
+        break;
+      case "singularity":
+        this.updateSingularity(delta, playerX, playerY, projectiles);
+        break;
+    }
+    this.drawBoss();
+    this.drawBossHealth();
+  }
+
+  // ========== BOSS UPDATES ==========
+
+  private updateContentFarm(delta: number, projectiles: Projectile[]) {
+    this.shootTimer -= delta;
+    if (this.shootTimer <= 0) {
+      this.shootTimer = Math.max(800, 2200 - this.phase * 500);
+      const aliveCells = this.cells.filter((c) => c.alive);
+      if (aliveCells.length > 0) {
+        const cell = aliveCells[Math.floor(Math.random() * aliveCells.length)];
+        const cx = this.x + cell.localX,
+          cy = this.y + cell.localY;
+        const a = Math.atan2(this.playerY - cy, this.playerX - cx);
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            cx,
+            cy,
+            Math.cos(a) * 120,
+            Math.sin(a) * 120,
+            6,
+            0xff2222,
+            2500,
+            false
+          )
+        );
+      }
+    }
+    const rate = 2500 - this.phase * 500;
+    let alive = 0;
+    for (const cell of this.cells) {
+      if (!cell.alive) {
+        cell.regenTimer += delta;
+        if (cell.regenTimer > 4500 - this.phase * 800) {
+          cell.alive = true;
+          cell.hp = 2;
+          cell.regenTimer = 0;
+        }
+        continue;
+      }
+      alive++;
+      cell.pulse += delta / 1000;
+      cell.spawnCd -= delta;
+      if (cell.spawnCd <= 0 && !this.wantsSpawn) {
+        cell.spawnCd = rate;
+        this.wantsSpawn = true;
+        this.spawnX = this.x + cell.localX;
+        this.spawnY = this.y + cell.localY;
+      }
+      const wx = this.x + cell.localX,
+        wy = this.y + cell.localY;
+      for (const p of projectiles) {
+        if (!p.fromPlayer || p.hitIds.has(-cell.localX * 1000 - cell.localY))
+          continue;
+        if (Phaser.Math.Distance.Between(p.x, p.y, wx, wy) < this.cellSize) {
+          cell.hp--;
+          p.hitIds.add(-cell.localX * 1000 - cell.localY);
+          if (!p.piercing) p.destroy();
+          if (cell.hp <= 0) {
+            cell.alive = false;
+            cell.regenTimer = 0;
+            this.takeDamage(15);
+          }
+          break;
+        }
+      }
+    }
+    if (alive === 0 && this.phase < 3) this.advancePhase();
+    this.breathWave += delta / 800;
+  }
+
+  private updateBlackBox(
+    delta: number,
+    px: number,
+    py: number,
+    projectiles: Projectile[]
+  ) {
+    this.shootTimer -= delta;
+    if (this.shootTimer <= 0) {
+      this.shootTimer = Math.max(
+        600,
+        1600 - (1 - this.health / this.maxHealth) * 700
+      );
+      const a = Math.atan2(py - this.y, px - this.x);
+      projectiles.push(
+        new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          Math.cos(a) * 180,
+          Math.sin(a) * 180,
+          8,
+          0xaabbcc,
+          2000,
+          false
+        )
+      );
+      if (this.health / this.maxHealth < 0.35) {
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a + 0.3) * 160,
+            Math.sin(a + 0.3) * 160,
+            6,
+            0x7788bb,
+            1800,
+            false
+          )
+        );
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a - 0.3) * 160,
+            Math.sin(a - 0.3) * 160,
+            6,
+            0x7788bb,
+            1800,
+            false
+          )
+        );
+      }
+    }
+    this.tendrilTimer -= delta;
+    this.distortRadius = 70 + Math.sin(this.breathPhase * 0.8) * 10;
+    const tendrilRate = Math.max(
+      300,
+      700 - (1 - this.health / this.maxHealth) * 500
+    );
+    if (this.tendrilTimer <= 0) {
+      this.tendrilTimer = tendrilRate;
+      const count = this.health / this.maxHealth < 0.4 ? 3 : 1;
+      for (let c = 0; c < count; c++) {
+        this.tendrils.push({
+          angle:
+            Math.atan2(py - this.y, px - this.x) +
+            (Math.random() - 0.5) * (0.6 + c * 0.5),
+          length: 0,
+          age: 0,
+          maxAge: 700 + this.bossIdx * 50,
+        });
+      }
+    }
+    for (let i = this.tendrils.length - 1; i >= 0; i--) {
+      const t = this.tendrils[i];
+      t.age += delta;
+      t.length = Math.min(150, t.age * 0.4);
+      if (t.age > t.maxAge) this.tendrils.splice(i, 1);
+    }
+    const moveSpd = 40 * this.spdMult * (delta / 1000);
+    const angle = Math.atan2(py - this.y, px - this.x);
+    this.x += Math.cos(angle) * moveSpd;
+    this.y += Math.sin(angle) * moveSpd;
+    this.checkProjectileHits(projectiles);
+  }
+
+  private updateHallucinator(
+    delta: number,
+    px: number,
+    py: number,
+    projectiles: Projectile[]
+  ) {
+    this.cloneTimer += delta;
+    this.shootTimer -= delta;
+    if (this.shootTimer <= 0) {
+      this.shootTimer = Math.max(600, 1800 - this.phase * 400);
+      const shooter =
+        this.clones[Math.floor(Math.random() * this.clones.length)];
+      if (shooter) {
+        const a = Math.atan2(py - shooter.y, px - shooter.x);
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            shooter.x,
+            shooter.y,
+            Math.cos(a) * 160,
+            Math.sin(a) * 160,
+            5,
+            0x8855ff,
+            2200,
+            false
+          )
+        );
+      }
+    }
+    const moveSpd = (70 + this.phase * 18) * this.spdMult;
+    for (const clone of this.clones) {
+      const angle = Math.atan2(py - clone.y, px - clone.x);
+      const spd = (clone.real ? moveSpd : moveSpd * 0.8) * (delta / 1000);
+      clone.x += Math.cos(angle) * spd;
+      clone.y += Math.sin(angle) * spd;
+      clone.alpha =
+        0.5 + Math.sin(this.lifetime * 0.003 + (clone.real ? 0 : 2)) * 0.3;
+    }
+    const real = this.clones.find((c) => c.real);
+    if (real) {
+      this.x = real.x;
+      this.y = real.y;
+    }
+    this.checkProjectileHits(projectiles);
+  }
+
+  private updateAlignment(
+    delta: number,
+    px: number,
+    py: number,
+    projectiles: Projectile[]
+  ) {
+    if (this.apTransitionTimer > 0) {
+      this.apTransitionTimer -= delta;
+      for (let i = 0; i < this.apSpikes.length; i++)
+        this.apSpikes[i] = Math.min(1, this.apSpikes[i] + delta / 600);
+    }
+    if (!this.apFriendly) {
+      for (let i = 0; i < this.apSpikes.length; i++)
+        this.apSpikes[i] = 0.6 + Math.sin(this.breathPhase * 3.5 + i) * 0.4;
+      this.shootTimer -= delta;
+      if (this.shootTimer <= 0) {
+        this.shootTimer = 1400;
+        const count = 8 + Math.floor((1 - this.health / this.maxHealth) * 6);
+        for (let i = 0; i < count; i++) {
+          const sa = (i / count) * Math.PI * 2 + this.breathPhase;
+          projectiles.push(
+            new Projectile(
+              this.scene,
+              this.x,
+              this.y,
+              Math.cos(sa) * 140,
+              Math.sin(sa) * 140,
+              9,
+              0xff2222,
+              2000,
+              false
+            )
+          );
+        }
+      }
+    }
+    const angle = Math.atan2(py - this.y, px - this.x);
+    const spd = (this.apFriendly ? 25 : 120 * this.spdMult) * (delta / 1000);
+    this.x += Math.cos(angle) * spd;
+    this.y += Math.sin(angle) * spd;
+    this.checkProjectileHits(projectiles);
+  }
+
+  private updateOverfit(
+    delta: number,
+    px: number,
+    py: number,
+    projectiles: Projectile[]
+  ) {
+    this.oePatternPhase += delta / 1000;
+    const shieldSpeed = (1.8 + (this.phase === 2 ? 1.2 : 0)) * this.spdMult;
+    this.oeShieldAngle += (delta / 1000) * shieldSpeed;
+    this.shootTimer -= delta;
+    if (this.shootTimer <= 0) {
+      this.shootTimer = this.phase === 2 ? 1200 : 1800;
+      const count = 3 + (this.phase === 2 ? 2 : 0);
+      for (let i = 0; i < count; i++) {
+        const sa = this.oePatternPhase + (i / count) * Math.PI * 2;
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(sa) * 155,
+            Math.sin(sa) * 155,
+            7,
+            0xffcc00,
+            2200,
+            false
+          )
+        );
+      }
+    }
+    const angle = Math.atan2(py - this.y, px - this.x);
+    const moveSpd = (70 + (this.phase === 2 ? 30 : 0)) * this.spdMult;
+    this.x += Math.cos(angle) * moveSpd * (delta / 1000);
+    this.y += Math.sin(angle) * moveSpd * (delta / 1000);
+
+    const shieldArc = this.phase === 2 ? 1.3 : 1.0;
+    for (const p of projectiles) {
+      if (!p.fromPlayer) continue;
+      const d = Phaser.Math.Distance.Between(p.x, p.y, this.x, this.y);
+      const pAngle = Math.atan2(p.y - this.y, p.x - this.x);
+      let diff = pAngle - this.oeShieldAngle;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      if (d < this.radius + 15) {
+        if (Math.abs(diff) < shieldArc) {
+          if (!p.piercing) p.destroy();
+        } else {
+          this.takeDamage(p.damage);
+          if (!p.piercing) p.destroy();
+        }
+      }
+    }
+  }
+
+  private updatePromptInjector(
+    delta: number,
+    px: number,
+    py: number,
+    projectiles: Projectile[]
+  ) {
+    this.piGlitchTimer -= delta;
+    const glitchInterval = Math.max(
+      1500,
+      3500 - this.phase * 800 - (1 - this.health / this.maxHealth) * 1200
+    );
+    const glitchDuration = 1800 + this.phase * 600;
+    if (this.piGlitchTimer <= 0) {
+      this.piGlitchTimer = glitchInterval;
+      this.piGlitchActive = true;
+      this.scene.time.delayedCall(glitchDuration, () => {
+        this.piGlitchActive = false;
+      });
+    }
+    if (this.piGlitchActive) {
+      this.shootTimer -= delta;
+      if (this.shootTimer <= 0) {
+        this.shootTimer = 280;
+        const a =
+          Math.atan2(py - this.y, px - this.x) + (Math.random() - 0.5) * 0.8;
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a) * 210,
+            Math.sin(a) * 210,
+            6,
+            0xff44aa,
+            1800,
+            false
+          )
+        );
+      }
+    }
+    const moveSpd = (80 + this.phase * 18) * this.spdMult;
+    const angle = Math.atan2(py - this.y, px - this.x);
+    this.x += Math.cos(angle) * moveSpd * (delta / 1000);
+    this.y += Math.sin(angle) * moveSpd * (delta / 1000);
+    this.checkProjectileHits(projectiles);
+  }
+
+  private updateSingularity(
+    delta: number,
+    px: number,
+    py: number,
+    projectiles: Projectile[]
+  ) {
+    const phaseMult = 1 + (this.phase - 1) * 0.35;
+    this.singSize = 2 + (1 - this.health / this.maxHealth) * 100;
+    this.radius = this.singSize + 12;
+    for (const ring of this.singRings) {
+      ring.gapAngle += ring.speed * phaseMult * (delta / 1000);
+      ring.radius = this.singSize + 18 + this.singRings.indexOf(ring) * 16;
+      ring.gapSize = Math.max(
+        0.15,
+        0.5 - this.phase * 0.1 - this.singRings.indexOf(ring) * 0.05
+      );
+    }
+    if (this.phase >= 2) {
+      const angle = Math.atan2(py - this.y, px - this.x);
+      const spd = (15 + this.phase * 15) * this.spdMult * (delta / 1000);
+      this.x += Math.cos(angle) * spd;
+      this.y += Math.sin(angle) * spd;
+    }
+    this.shootTimer -= delta;
+    if (this.shootTimer <= 0) {
+      this.shootTimer = Math.max(900, 2200 - this.phase * 400);
+      const count = 6 + this.phase * 3;
+      for (let i = 0; i < count; i++) {
+        const sa = (i / count) * Math.PI * 2 + this.breathPhase;
+        const spd = 120 + this.phase * 25;
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(sa) * spd,
+            Math.sin(sa) * spd,
+            8,
+            0xccaaff,
+            2500,
+            false
+          )
+        );
+      }
+    }
+    for (const p of projectiles) {
+      if (!p.fromPlayer) continue;
+      if (
+        Phaser.Math.Distance.Between(p.x, p.y, this.x, this.y) <
+        this.singSize + 15
+      ) {
+        this.takeDamage(p.damage);
+        this.singAbsorbed++;
+        if (!p.piercing) p.destroy();
+      }
+    }
+  }
+
+  private checkProjectileHits(projectiles: Projectile[]) {
+    for (const p of projectiles) {
+      if (!p.fromPlayer) continue;
+      if (
+        Phaser.Math.Distance.Between(p.x, p.y, this.x, this.y) <
+        this.radius + 10
+      ) {
+        this.takeDamage(p.damage);
+        if (!p.piercing) p.destroy();
+      }
+    }
+  }
+
+  // ========== DRAWING ==========
+
+  private drawBoss() {
+    this.gfx.clear();
+    const f = this.hitFlash > 0;
+    switch (this.bossType) {
+      case "contentFarm":
+        this.drawContentFarm(f);
+        break;
+      case "blackBox":
+        this.drawBlackBox(f);
+        break;
+      case "hallucinator":
+        this.drawHallucinator(f);
+        break;
+      case "alignmentProblem":
+        this.drawAlignment(f);
+        break;
+      case "overfitEngine":
+        this.drawOverfitEngine(f);
+        break;
+      case "promptInjector":
+        this.drawPromptInjector(f);
+        break;
+      case "singularity":
+        this.drawSingularity(f);
+        break;
+    }
+  }
+
+  private drawContentFarm(flash: boolean) {
+    const bw = Math.sin(this.breathWave);
+    for (const cell of this.cells) {
+      if (!cell.alive) {
+        this.gfx.fillStyle(0x18181b, 0.3);
+        this.drawHex(cell.localX, cell.localY, this.cellSize * 0.8);
+        continue;
+      }
+      const cb = Math.sin(cell.pulse + bw) * 0.08;
+      const s = this.cellSize * (1 + cb);
+      const spawning = cell.spawnCd < 800;
+      this.gfx.fillStyle(
+        flash ? 0xffffff : spawning ? 0xff7700 : 0xff2222,
+        0.5 + (spawning ? Math.sin(cell.pulse * 8) * 0.3 : 0.2)
+      );
+      this.drawHex(cell.localX, cell.localY, s);
+      this.gfx.lineStyle(1, flash ? 0xffffff : 0xff2222, 0.5);
+      this.strokeHex(cell.localX, cell.localY, s);
+    }
+  }
+
+  private drawBlackBox(flash: boolean) {
+    const s = 45;
+    this.gfx.fillStyle(flash ? 0x333333 : 0x020204, 1);
+    this.gfx.fillRect(-s, -s, s * 2, s * 2);
+    this.gfx.lineStyle(1, 0x7788bb, 0.4);
+    this.gfx.strokeRect(-s, -s, s * 2, s * 2);
+    for (const t of this.tendrils) {
+      const p = t.age / t.maxAge;
+      this.gfx.lineStyle(2.5, 0xbbccee, 0.7 * (1 - p));
+      this.gfx.beginPath();
+      this.gfx.moveTo(Math.cos(t.angle) * s, Math.sin(t.angle) * s);
+      this.gfx.lineTo(
+        Math.cos(t.angle + 0.15) * (s + t.length * 0.5),
+        Math.sin(t.angle + 0.15) * (s + t.length * 0.5)
+      );
+      this.gfx.lineTo(
+        Math.cos(t.angle) * (s + t.length),
+        Math.sin(t.angle) * (s + t.length)
+      );
+      this.gfx.strokePath();
+    }
+    this.gfx.lineStyle(1, 0x7788bb, 0.15);
+    for (let i = 0; i < 6; i++)
+      this.gfx.strokeCircle(0, 0, this.distortRadius + i * 3);
+  }
+
+  private drawHallucinator(flash: boolean) {
+    for (const clone of this.clones) {
+      const rx = clone.x - this.x,
+        ry = clone.y - this.y;
+      const c = flash && clone.real ? 0xffffff : 0x8855ff;
+      this.gfx.fillStyle(c, clone.alpha * 0.25);
+      this.gfx.fillCircle(rx, ry, 32);
+      this.gfx.fillStyle(c, clone.alpha * 0.75);
+      const verts =
+        6 +
+        Math.floor(Math.sin(this.lifetime * 0.002 + (clone.real ? 0 : 3)) * 2);
+      this.gfx.beginPath();
+      for (let i = 0; i < verts; i++) {
+        const a = (i / verts) * Math.PI * 2 + this.breathPhase;
+        const r = 22 + Math.sin(this.breathPhase * 2 + i) * 5;
+        if (i === 0)
+          this.gfx.moveTo(rx + Math.cos(a) * r, ry + Math.sin(a) * r);
+        else this.gfx.lineTo(rx + Math.cos(a) * r, ry + Math.sin(a) * r);
+      }
+      this.gfx.closePath();
+      this.gfx.fillPath();
+      this.gfx.fillStyle(0xffffff, clone.alpha * 0.5);
+      this.gfx.fillCircle(rx, ry, 6);
+    }
+  }
+
+  private drawAlignment(flash: boolean) {
+    const r = 38;
+    if (this.apFriendly) {
+      this.gfx.fillStyle(flash ? 0xffffff : 0xd0e0ff, 0.85);
+      this.gfx.fillCircle(0, 0, r);
+      this.gfx.lineStyle(2, 0x00c8ff, 0.6 + Math.sin(this.breathPhase) * 0.2);
+      this.gfx.strokeCircle(0, 0, r + 3);
+    } else {
+      const jit =
+        this.apTransitionTimer > 0 ? (this.apTransitionTimer / 1000) * 5 : 0;
+      this.gfx.fillStyle(flash ? 0xffffff : 0x0f0f10, 0.9);
+      this.gfx.beginPath();
+      for (let i = 0; i < this.apSpikes.length; i++) {
+        const a = (i / this.apSpikes.length) * Math.PI * 2;
+        const sr = r + this.apSpikes[i] * 32;
+        const px = Math.cos(a) * sr + (Math.random() - 0.5) * jit;
+        const py = Math.sin(a) * sr + (Math.random() - 0.5) * jit;
+        if (i === 0) this.gfx.moveTo(px, py);
+        else this.gfx.lineTo(px, py);
+      }
+      this.gfx.closePath();
+      this.gfx.fillPath();
+      this.gfx.lineStyle(2, 0xff2222, 0.8);
+      this.gfx.strokePath();
+      this.gfx.fillStyle(0xff2222, Math.sin(this.breathPhase * 4) * 0.3 + 0.5);
+      this.gfx.fillCircle(0, 0, r * 0.4);
+    }
+  }
+
+  private drawOverfitEngine(flash: boolean) {
+    const c = flash ? 0xffffff : 0xffcc00;
+    this.gfx.lineStyle(2, c, 0.8);
+    const ringCount = this.phase === 2 ? 4 : 3;
+    for (let i = 0; i < ringCount; i++) {
+      const r = 18 + i * 11;
+      const startAngle =
+        this.oePatternPhase * (i % 2 === 0 ? 1 : -1) * (1 + i * 0.3);
+      this.gfx.beginPath();
+      for (let j = 0; j < 60; j++) {
+        const a = startAngle + (j / 60) * Math.PI * 2;
+        const rr = r + Math.sin(a * (4 + i) + this.oePatternPhase * 3) * 5;
+        if (j === 0) this.gfx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        else this.gfx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      this.gfx.closePath();
+      this.gfx.strokePath();
+    }
+    this.gfx.lineStyle(5, 0xffdd44, 0.6);
+    this.gfx.beginPath();
+    for (let j = 0; j < 20; j++) {
+      const a = this.oeShieldAngle - 1.0 + (j / 19) * 2.0;
+      const rr = this.radius + 6;
+      if (j === 0) this.gfx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else this.gfx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    this.gfx.strokePath();
+    this.gfx.fillStyle(c, 0.5);
+    this.gfx.fillCircle(0, 0, 14);
+  }
+
+  private drawPromptInjector(flash: boolean) {
+    const c = flash ? 0xffffff : 0xff44aa;
+    const glitch = this.piGlitchActive;
+    const jx = glitch ? (Math.random() - 0.5) * 10 : 0;
+    const jy = glitch ? (Math.random() - 0.5) * 10 : 0;
+    this.gfx.fillStyle(c, 0.12);
+    this.gfx.fillCircle(jx, jy, 42);
+    this.gfx.lineStyle(2.5, c, 0.85);
+    this.gfx.strokeCircle(jx, jy, 32);
+    if (this.phase >= 2) {
+      this.gfx.lineStyle(1, c, 0.4);
+      this.gfx.strokeCircle(jx, jy, 42);
+    }
+    if (this.phase >= 3) {
+      this.gfx.lineStyle(1, 0xffffff, 0.25);
+      this.gfx.strokeCircle(jx, jy, 50);
+    }
+    this.gfx.fillStyle(0xffffff, 0.95);
+    this.gfx.beginPath();
+    this.gfx.moveTo(-9 + jx, -11 + jy);
+    this.gfx.lineTo(9 + jx, jy);
+    this.gfx.lineTo(-9 + jx, 11 + jy);
+    this.gfx.closePath();
+    this.gfx.fillPath();
+    if (glitch) {
+      for (let i = 0; i < 3; i++) {
+        this.gfx.fillStyle(0xff44aa, 0.25);
+        this.gfx.fillRect(
+          -55 + (Math.random() - 0.5) * 110,
+          -3 + (Math.random() - 0.5) * 70,
+          110,
+          3
+        );
+      }
+    }
+  }
+
+  private drawSingularity(flash: boolean) {
+    this.gfx.fillStyle(
+      0xccaaff,
+      Math.min(0.2, 0.1 + this.singAbsorbed * 0.002)
+    );
+    this.gfx.fillCircle(0, 0, this.singSize + 12);
+    this.gfx.fillStyle(flash ? 0x1e1b4b : 0x020617, 1);
+    this.gfx.fillCircle(0, 0, this.singSize);
+    this.gfx.fillStyle(0xccaaff, 0.4);
+    this.gfx.fillCircle(
+      Math.sin(this.breathPhase * 2) * this.singSize * 0.3,
+      Math.cos(this.breathPhase * 3) * this.singSize * 0.3,
+      this.singSize * 0.3
+    );
+    for (const ring of this.singRings) {
+      this.gfx.lineStyle(2.5, 0xccaaff, 0.5);
+      this.gfx.beginPath();
+      let started = false;
+      for (let i = 0; i <= 50; i++) {
+        const a = (i / 50) * Math.PI * 2;
+        const rel =
+          (((a - ring.gapAngle) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        if (rel < ring.gapSize) {
+          started = false;
+          continue;
+        }
+        const px = Math.cos(a) * ring.radius,
+          py = Math.sin(a) * ring.radius;
+        if (!started) {
+          this.gfx.moveTo(px, py);
+          started = true;
+        } else this.gfx.lineTo(px, py);
+      }
+      this.gfx.strokePath();
+    }
+  }
+
+  // ========== CINEMATIC DEATH ==========
+
+  private drawBossDeath() {
+    this.gfx.clear();
+    this.hpGfx.clear();
+    const p = this.deathProgress;
+    const c = this.bossColor;
+
+    for (let i = 0; i < 4; i++) {
+      const ringP = Math.max(0, p - i * 0.12);
+      if (ringP <= 0) continue;
+      const ringR = ringP * 250;
+      const ringA = 0.7 * (1 - ringP);
+      this.gfx.lineStyle(3.5 - i * 0.7, c, ringA);
+      this.gfx.strokeCircle(0, 0, ringR);
+    }
+
+    const frags = 28;
+    for (let i = 0; i < frags; i++) {
+      const angle = (i / frags) * Math.PI * 2 + p * 2;
+      const dist = p * 180 * (0.5 + (i % 3) * 0.25);
+      const size = (5 - (i % 3)) * (1 - p);
+      const fragA = 0.85 * (1 - p);
+      this.gfx.fillStyle(
+        i % 3 === 0 ? c : i % 3 === 1 ? 0xffffff : 0xfbbf24,
+        fragA
+      );
+      const fx = Math.cos(angle) * dist,
+        fy = Math.sin(angle) * dist;
+      if (i % 3 === 0)
+        this.gfx.fillTriangle(
+          fx,
+          fy - size,
+          fx + size,
+          fy + size,
+          fx - size,
+          fy + size
+        );
+      else if (i % 3 === 1)
+        this.gfx.fillRect(fx - size / 2, fy - size / 2, size, size);
+      else this.gfx.fillCircle(fx, fy, size * 0.7);
+    }
+
+    if (p < 0.35) {
+      const flashA = (1 - p / 0.35) * 0.85;
+      this.gfx.fillStyle(0xffffff, flashA);
+      this.gfx.fillCircle(0, 0, 70 * (1 - p));
+    }
+    this.setAlpha(1 - p * 0.5);
+  }
+
+  // ========== HELPERS ==========
+
+  private drawHex(cx: number, cy: number, size: number) {
+    this.gfx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI / 3) * i - Math.PI / 6;
+      if (i === 0)
+        this.gfx.moveTo(cx + size * Math.cos(a), cy + size * Math.sin(a));
+      else this.gfx.lineTo(cx + size * Math.cos(a), cy + size * Math.sin(a));
+    }
+    this.gfx.closePath();
+    this.gfx.fillPath();
+  }
+
+  private strokeHex(cx: number, cy: number, size: number) {
+    this.gfx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI / 3) * i - Math.PI / 6;
+      if (i === 0)
+        this.gfx.moveTo(cx + size * Math.cos(a), cy + size * Math.sin(a));
+      else this.gfx.lineTo(cx + size * Math.cos(a), cy + size * Math.sin(a));
+    }
+    this.gfx.closePath();
+    this.gfx.strokePath();
+  }
+
+  private drawBossHealth() {
+    this.hpGfx.clear();
+    if (this.isDead) return;
+    const w = 120,
+      pct = this.health / this.maxHealth;
+    const yOff = -this.radius - 24;
+    this.hpGfx.fillStyle(0x18181b, 0.85);
+    this.hpGfx.fillRect(-w / 2 - 1, yOff - 1, w + 2, 7);
+    this.hpGfx.fillStyle(this.bossColor, 0.9);
+    this.hpGfx.fillRect(-w / 2, yOff, w * pct, 5);
+    this.hpGfx.lineStyle(1, this.bossColor, 0.5);
+    this.hpGfx.strokeRect(-w / 2 - 1, yOff - 1, w + 2, 7);
+  }
+}
