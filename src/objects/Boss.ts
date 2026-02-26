@@ -22,12 +22,12 @@ export const BOSS_NAMES: Record<BossType, string> = {
 };
 
 export const BOSS_COLORS: Record<BossType, number> = {
-  contentFarm: 0xff2222,
-  blackBox: 0x7788bb,
-  hallucinator: 0x8855ff,
-  alignmentProblem: 0x00c8ff,
-  overfitEngine: 0xffcc00,
-  promptInjector: 0xff44aa,
+  contentFarm: 0xff0033,
+  blackBox: 0x5500cc,
+  hallucinator: 0x7700ff,
+  alignmentProblem: 0x00ffee,
+  overfitEngine: 0xff0080,
+  promptInjector: 0xff0066,
   singularity: 0xffffff,
 };
 
@@ -389,7 +389,7 @@ export default class Boss extends Phaser.GameObjects.Container {
             Math.cos(a) * 120,
             Math.sin(a) * 120,
             6,
-            0xff2222,
+            0xff0033,
             2500,
             false
           )
@@ -451,24 +451,74 @@ export default class Boss extends Phaser.GameObjects.Container {
       this.shootTimer = Math.max(450, 1300 - (1 - hpPct) * 600);
       const a = Math.atan2(py - this.y, px - this.x);
       projectiles.push(
-        new Projectile(this.scene, this.x, this.y, Math.cos(a) * 200, Math.sin(a) * 200, 10, 0xaabbcc, 2000, false)
+        new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          Math.cos(a) * 200,
+          Math.sin(a) * 200,
+          10,
+          0x8844ff,
+          2000,
+          false
+        )
       );
       if (hpPct < 0.65) {
         const spread = 0.25;
         projectiles.push(
-          new Projectile(this.scene, this.x, this.y, Math.cos(a + spread) * 180, Math.sin(a + spread) * 180, 8, 0x7788bb, 1800, false)
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a + spread) * 180,
+            Math.sin(a + spread) * 180,
+            8,
+            0x5500cc,
+            1800,
+            false
+          )
         );
         projectiles.push(
-          new Projectile(this.scene, this.x, this.y, Math.cos(a - spread) * 180, Math.sin(a - spread) * 180, 8, 0x7788bb, 1800, false)
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a - spread) * 180,
+            Math.sin(a - spread) * 180,
+            8,
+            0x5500cc,
+            1800,
+            false
+          )
         );
       }
-      if (hpPct < 0.30) {
+      if (hpPct < 0.3) {
         const wide = 0.5;
         projectiles.push(
-          new Projectile(this.scene, this.x, this.y, Math.cos(a + wide) * 160, Math.sin(a + wide) * 160, 7, 0x5566aa, 1600, false)
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a + wide) * 160,
+            Math.sin(a + wide) * 160,
+            7,
+            0x4400aa,
+            1600,
+            false
+          )
         );
         projectiles.push(
-          new Projectile(this.scene, this.x, this.y, Math.cos(a - wide) * 160, Math.sin(a - wide) * 160, 7, 0x5566aa, 1600, false)
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a - wide) * 160,
+            Math.sin(a - wide) * 160,
+            7,
+            0x4400aa,
+            1600,
+            false
+          )
         );
       }
     }
@@ -480,7 +530,9 @@ export default class Boss extends Phaser.GameObjects.Container {
       const count = hpPct < 0.4 ? 4 : 2;
       for (let c = 0; c < count; c++) {
         this.tendrils.push({
-          angle: Math.atan2(py - this.y, px - this.x) + (Math.random() - 0.5) * (0.6 + c * 0.4),
+          angle:
+            Math.atan2(py - this.y, px - this.x) +
+            (Math.random() - 0.5) * (0.6 + c * 0.4),
           length: 0,
           age: 0,
           maxAge: 900 + this.bossIdx * 50,
@@ -521,11 +573,31 @@ export default class Boss extends Phaser.GameObjects.Container {
         if (!shooter) continue;
         const a = Math.atan2(py - shooter.y, px - shooter.x);
         projectiles.push(
-          new Projectile(this.scene, shooter.x, shooter.y, Math.cos(a) * 185, Math.sin(a) * 185, 8, 0x8855ff, 2200, false)
+          new Projectile(
+            this.scene,
+            shooter.x,
+            shooter.y,
+            Math.cos(a) * 185,
+            Math.sin(a) * 185,
+            8,
+            0x7700ff,
+            2200,
+            false
+          )
         );
         if (this.phase >= 3) {
           projectiles.push(
-            new Projectile(this.scene, shooter.x, shooter.y, Math.cos(a + 0.2) * 170, Math.sin(a + 0.2) * 170, 6, 0x6633dd, 2000, false)
+            new Projectile(
+              this.scene,
+              shooter.x,
+              shooter.y,
+              Math.cos(a + 0.2) * 170,
+              Math.sin(a + 0.2) * 170,
+              6,
+              0x5500cc,
+              2000,
+              false
+            )
           );
         }
       }
@@ -575,7 +647,7 @@ export default class Boss extends Phaser.GameObjects.Container {
               Math.cos(sa) * 165,
               Math.sin(sa) * 165,
               12,
-              0xff2222,
+              0xff0033,
               2000,
               false
             )
@@ -613,7 +685,7 @@ export default class Boss extends Phaser.GameObjects.Container {
             Math.cos(sa) * 155,
             Math.sin(sa) * 155,
             7,
-            0xffcc00,
+            0xff0080,
             2200,
             false
           )
@@ -677,7 +749,7 @@ export default class Boss extends Phaser.GameObjects.Container {
             Math.cos(a) * 210,
             Math.sin(a) * 210,
             6,
-            0xff44aa,
+            0xff0066,
             1800,
             false
           )
@@ -729,7 +801,7 @@ export default class Boss extends Phaser.GameObjects.Container {
             Math.cos(sa) * spd,
             Math.sin(sa) * spd,
             8,
-            0xccaaff,
+            0xcc77ff,
             2500,
             false
           )
@@ -804,24 +876,24 @@ export default class Boss extends Phaser.GameObjects.Container {
       const s = this.cellSize * (1 + cb);
       const spawning = cell.spawnCd < 800;
       this.gfx.fillStyle(
-        flash ? 0xffffff : spawning ? 0xff7700 : 0xff2222,
+        flash ? 0xffffff : spawning ? 0xff0066 : 0xff0033,
         0.5 + (spawning ? Math.sin(cell.pulse * 8) * 0.3 : 0.2)
       );
       this.drawHex(cell.localX, cell.localY, s);
-      this.gfx.lineStyle(1, flash ? 0xffffff : 0xff2222, 0.5);
+      this.gfx.lineStyle(1, flash ? 0xffffff : 0xff0033, 0.5);
       this.strokeHex(cell.localX, cell.localY, s);
     }
   }
 
   private drawBlackBox(flash: boolean) {
     const s = 45;
-    this.gfx.fillStyle(flash ? 0x333333 : 0x020204, 1);
+    this.gfx.fillStyle(flash ? 0x220044 : 0x020204, 1);
     this.gfx.fillRect(-s, -s, s * 2, s * 2);
-    this.gfx.lineStyle(1, 0x7788bb, 0.4);
+    this.gfx.lineStyle(1, 0x5500cc, 0.4);
     this.gfx.strokeRect(-s, -s, s * 2, s * 2);
     for (const t of this.tendrils) {
       const p = t.age / t.maxAge;
-      this.gfx.lineStyle(2.5, 0xbbccee, 0.7 * (1 - p));
+      this.gfx.lineStyle(2.5, 0xaa77ff, 0.7 * (1 - p));
       this.gfx.beginPath();
       this.gfx.moveTo(Math.cos(t.angle) * s, Math.sin(t.angle) * s);
       this.gfx.lineTo(
@@ -834,7 +906,7 @@ export default class Boss extends Phaser.GameObjects.Container {
       );
       this.gfx.strokePath();
     }
-    this.gfx.lineStyle(1, 0x7788bb, 0.15);
+    this.gfx.lineStyle(1, 0x5500cc, 0.15);
     for (let i = 0; i < 6; i++)
       this.gfx.strokeCircle(0, 0, this.distortRadius + i * 3);
   }
@@ -843,7 +915,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     for (const clone of this.clones) {
       const rx = clone.x - this.x,
         ry = clone.y - this.y;
-      const c = flash && clone.real ? 0xffffff : 0x8855ff;
+      const c = flash && clone.real ? 0xffffff : 0x7700ff;
       this.gfx.fillStyle(c, clone.alpha * 0.25);
       this.gfx.fillCircle(rx, ry, 32);
       this.gfx.fillStyle(c, clone.alpha * 0.75);
@@ -870,7 +942,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     if (this.apFriendly) {
       this.gfx.fillStyle(flash ? 0xffffff : 0xd0e0ff, 0.85);
       this.gfx.fillCircle(0, 0, r);
-      this.gfx.lineStyle(2, 0x00c8ff, 0.6 + Math.sin(this.breathPhase) * 0.2);
+      this.gfx.lineStyle(2, 0x00ffee, 0.6 + Math.sin(this.breathPhase) * 0.2);
       this.gfx.strokeCircle(0, 0, r + 3);
     } else {
       const jit =
@@ -887,15 +959,15 @@ export default class Boss extends Phaser.GameObjects.Container {
       }
       this.gfx.closePath();
       this.gfx.fillPath();
-      this.gfx.lineStyle(2, 0xff2222, 0.8);
+      this.gfx.lineStyle(2, 0xff0033, 0.8);
       this.gfx.strokePath();
-      this.gfx.fillStyle(0xff2222, Math.sin(this.breathPhase * 4) * 0.3 + 0.5);
+      this.gfx.fillStyle(0xff0033, Math.sin(this.breathPhase * 4) * 0.3 + 0.5);
       this.gfx.fillCircle(0, 0, r * 0.4);
     }
   }
 
   private drawOverfitEngine(flash: boolean) {
-    const c = flash ? 0xffffff : 0xffcc00;
+    const c = flash ? 0xffffff : 0xff0080;
     this.gfx.lineStyle(2, c, 0.8);
     const ringCount = this.phase === 2 ? 4 : 3;
     for (let i = 0; i < ringCount; i++) {
@@ -912,7 +984,7 @@ export default class Boss extends Phaser.GameObjects.Container {
       this.gfx.closePath();
       this.gfx.strokePath();
     }
-    this.gfx.lineStyle(5, 0xffdd44, 0.6);
+    this.gfx.lineStyle(5, 0xff3399, 0.6);
     this.gfx.beginPath();
     for (let j = 0; j < 20; j++) {
       const a = this.oeShieldAngle - 1.0 + (j / 19) * 2.0;
@@ -926,7 +998,7 @@ export default class Boss extends Phaser.GameObjects.Container {
   }
 
   private drawPromptInjector(flash: boolean) {
-    const c = flash ? 0xffffff : 0xff44aa;
+    const c = flash ? 0xffffff : 0xff0066;
     const glitch = this.piGlitchActive;
     const jx = glitch ? (Math.random() - 0.5) * 10 : 0;
     const jy = glitch ? (Math.random() - 0.5) * 10 : 0;
@@ -951,7 +1023,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     this.gfx.fillPath();
     if (glitch) {
       for (let i = 0; i < 3; i++) {
-        this.gfx.fillStyle(0xff44aa, 0.25);
+        this.gfx.fillStyle(0xff0066, 0.25);
         this.gfx.fillRect(
           -55 + (Math.random() - 0.5) * 110,
           -3 + (Math.random() - 0.5) * 70,
@@ -964,20 +1036,20 @@ export default class Boss extends Phaser.GameObjects.Container {
 
   private drawSingularity(flash: boolean) {
     this.gfx.fillStyle(
-      0xccaaff,
+      0xcc77ff,
       Math.min(0.2, 0.1 + this.singAbsorbed * 0.002)
     );
     this.gfx.fillCircle(0, 0, this.singSize + 12);
-    this.gfx.fillStyle(flash ? 0x1e1b4b : 0x020617, 1);
+    this.gfx.fillStyle(flash ? 0x1a0033 : 0x050011, 1);
     this.gfx.fillCircle(0, 0, this.singSize);
-    this.gfx.fillStyle(0xccaaff, 0.4);
+    this.gfx.fillStyle(0xcc77ff, 0.4);
     this.gfx.fillCircle(
       Math.sin(this.breathPhase * 2) * this.singSize * 0.3,
       Math.cos(this.breathPhase * 3) * this.singSize * 0.3,
       this.singSize * 0.3
     );
     for (const ring of this.singRings) {
-      this.gfx.lineStyle(2.5, 0xccaaff, 0.5);
+      this.gfx.lineStyle(2.5, 0xcc77ff, 0.5);
       this.gfx.beginPath();
       let started = false;
       for (let i = 0; i <= 50; i++) {
@@ -1023,7 +1095,7 @@ export default class Boss extends Phaser.GameObjects.Container {
       const size = (5 - (i % 3)) * (1 - p);
       const fragA = 0.85 * (1 - p);
       this.gfx.fillStyle(
-        i % 3 === 0 ? c : i % 3 === 1 ? 0xffffff : 0xfbbf24,
+        i % 3 === 0 ? c : i % 3 === 1 ? 0xffffff : 0xff0080,
         fragA
       );
       const fx = Math.cos(angle) * dist,

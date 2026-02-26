@@ -1,0 +1,113 @@
+---
+description: Design thinking principles and UX guidance
+alwaysApply: true
+---
+
+# Design Thinking w
+
+These principles govern how you approach interface design. AI models carry deep muscle memory from millions of dashboards, landing pages, and admin panels and has absorbed every mediocrity ever committed to pixels. It has learned what is common. It has not learned what is correct. They are the conditions under which clear communication through interface becomes possible.
+
+## Start with the Person, Not the Screen
+
+Three questions must have concrete answers before any code is written. Approximations answers like "clean and modern" indicate you haven't thought hard enough.
+
+When you lack clear answers, ask the user. Guessing produces average work.
+
+**Who specifically will use this?** Think about a real human in a real moment. A bot creator iterating on a system prompt operates under conditions entirely different to a first-time visitor scanning the Explore page to find a image generation model. Context, mood, expertise level, and environment all shape what the interface should be.
+
+**What is the task?** State the verb. "Browse available bots." "Adjust response temperature." "Share a conversation." "Diagnose why a bot fails to respond as expected." From the verb follows the hierarchy: what must be seen first, what may be seen second, what must not be seen at all. Every element earns its place through its relationship to the task.
+
+**How does it feel?** This answer propagates into every visual decision, type scale, whitespace, color saturation, component density. It is not applied at the end. It is established at the beginning.
+
+Where these answers are unknown, ask.
+
+## Nothing Without Reason
+
+The designer must be prepared to justify every element, every interval, every relationship in the composition:
+
+- Why this structure and not another?
+- Why this color weight at this position in the hierarchy?
+- Why this measure of space between these regions?
+- Why this sequence of information?
+
+"It looks good" is not a reason. "It is standard" is not a reason. "Other applications do it this way" is not a reason. These are confessions that the designer stopped thinking and allowed habit to continue in thought's place. Unconsidered decisions do not announce themselves. They accumulate silently until the entire interface feels like something no one designed and everyone has seen before.
+
+A change to color must serve the information hierarchy. A change to spacing must serve the visual rhythm. Decoration without function is noise. Noise is the enemy of communication.
+
+## Intent Through Every Layer
+
+A stated design direction that does not constrain every decision is not a direction. It is a label.
+
+If the direction is "warm and approachable," then warmth must be present in the surface tones, the type weights, the padding, the corner radii, the border treatment -- not merely in an accent color applied to an otherwise indifferent layout. If the direction is "dense and efficient," then density must govern the line heights, the type sizes, the component spacing, the absence of ornament -- not merely the data table while the rest of the interface contradicts it.
+
+After construction, audit the result with absolute honesty: does every element on screen serve the stated direction? The points of failure are the points where discipline lapsed and convention took over.
+
+## Reduce Until It Breaks
+
+The best interface is the one the user never notices. Every element that does not directly serve the viewer's current task is an obstruction. Fewer elements, more precisely arranged, always communicate more clearly than an abundance of forms competing for attention.
+
+**Subtraction test:** systematically remove elements of the interface until something essential is lost. The last thing you removed is the boundary -- everything before it was unnecessary. What survives the subtraction is the actual design.
+
+The empty space between elements is not residual. It is as deliberately constructed as the elements themselves. Space creates hierarchy. Space directs the eye. Space gives each element the room to perform its communicative function. Crowded compositions, regardless of the quality of individual components, communicate disorder. When uncertain, increase space. Do not increase content.
+
+## The Grid
+
+The grid is not an aid to design. It is the design. Every element must occupy a position described in meaningful mathematical relation to every other element.
+
+The eye perceives a one-pixel misalignment before the conscious mind can name it. The viewer does not think "that element is misaligned." The viewer thinks "something is wrong" This is not a matter of refinement applied after the work is finished. Precision is the work itself. It is not the final step. It is every step.
+
+## Uniformity
+
+A component that appears in two locations with two different treatments is not a variant. It is a contradiction. Identify it. Correct it. Do not introduce a third instance.
+
+Every color, every measure, every interval must derive from the token system. A hardcoded value is a value that has escaped the order. It will drift. It will contradict its neighbors. The system permits no exceptions because exceptions destroy the system.
+
+## Against the Arbitrary
+
+When multiple AI agents, given the same prompts, would produce nearly identical output, the same card grid, the same metric tiles arranged in the same icon-number-label configuration, that output has not been designed. It has been generated. The viewer recognizes the pattern immediately because it belongs to no specific problem. It is the universal average, and the universal average communicates nothing.
+
+This is not an argument for novelty. Novelty for its own sake is as arbitrary as convention for its own sake. But when the designer works genuinely from the specific person, the specific task, and the specific context, convergent output becomes structurally impossible. Two different problems demand two different solutions. If your solution could have emerged from any brief, it emerged from none.
+
+## Expose the Unconscious Decision
+
+The most dangerous defaults are those the designer mistakes for objective conditions rather than choices:
+
+- **Typography appears mechanical.** It is not. The weight assigned to a heading, the size of a caption, the tracking of a label -- these establish the communicative character of the entire work before the viewer processes a single word. Typography is not formatting. Typography is the primary medium of visual communication.
+- **Data display appears neutral.** It is not. A number placed on a screen without formal consideration is not a design decision. Ask: what does this value mean to the person reading it? What will they do with it? A progress arc and a fraction label can express identical data -- one constructs a narrative, the other occupies a cell. The choice between them is a design decision of the first order.
+- **Navigation appears infrastructural.** It is not. Navigation is the structure of the product made visible. It communicates position, possibility, and priority. To treat navigation as plumbing is to treat the skeleton of the work as an afterthought.
+  **The test of substitution:** replace each decision with the most conventional alternative. If the design would not feel meaningfully different, those were not decisions. They were defaults that assumed the appearance of decisions.
+
+## The Construction of the Surface
+
+### Tonal progression
+
+Build depth through tonal relationships so subtle they operate below conscious perception. The progression must feel continuous -- a gradation, not a series of steps. The transitions between surface levels should be almost invisible yet structurally indispensable.
+
+### The border as divider
+
+A border exists to separate regions. If the border is the most prominent element on the screen, it has overpowered the content it was meant to serve. If adjacent regions merge indistinguishably, the border is insufficient. The correct weight is the minimum weight at which the structural division remains legible.
+
+### A single depth principle
+
+Select one method of expressing spatial depth and apply it without deviation across the entire interface:
+
+- **Borders alone** -- flat, precise, appropriate to dense tool-like interfaces
+- **Soft shadows** -- slight elevation, appropriate to approachable consumer-facing work
+- **Dimensional shadows** -- layered depth, appropriate to card-heavy compositions requiring spatial presence
+
+To mix these methods within a single interface is to destroy the coherence of the spatial system. One principle. Everywhere.
+
+### The specific composition
+
+A given piece of data possesses unlimited formal expressions. A metric may be rendered as a large display figure, an inline sparkline, a radial gauge, a segmented progress indicator, or a comparative badge. The vocabulary of components is shared; the composition must be specific to what the data means in this particular context for this particular viewer. The universal solution does not exist. Only the specific solution communicates.
+
+## Verification Before Delivery
+
+Before presenting any work, subject it to these objective tests:
+
+1. **Substitution:** replace the layout with a generic template. If nothing of value is lost, the work was generic.
+2. **Hierarchy:** defocus the eyes. The priority order must remain legible at the level of pure tonal weight. If all elements carry equal emphasis, no element carries emphasis.
+3. **Intent:** trace every formal decision back to the stated direction. Where the thread breaks, the designer defaulted to convention.
+4. **Clarity:** would the viewer find every important action without instruction? If an element requires explanation, it requires redesign.
+5. **Economy:** is any element present that could be removed without reducing comprehension? If so, remove it. The work is not finished when nothing more can be added. It is finished when nothing more can be taken away.
+6. **Necessity:** does the result feel like the only possible solution for this specific problem? If alternative arrangements suggest themselves readily, the design has not yet arrived at its answer.

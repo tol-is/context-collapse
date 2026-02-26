@@ -32,7 +32,7 @@ export default class HUD {
     const font = {
       fontFamily: '"Share Tech Mono", monospace',
       fontSize: "13px",
-      color: "#9999bb",
+      color: "#bb88dd",
     };
     const bright = { ...font, color: "#f4f4f5" };
 
@@ -49,11 +49,11 @@ export default class HUD {
       .setDepth(20002)
       .setScrollFactor(0);
     this.texts.tokens = scene.add
-      .text(10, 0, "", { ...font, color: "#ffcc00" })
+      .text(10, 0, "", { ...font, color: "#ff0080" })
       .setDepth(20002)
       .setScrollFactor(0);
     this.texts.prompt = scene.add
-      .text(10, 0, "", { ...font, color: "#8855ff" })
+      .text(10, 0, "", { ...font, color: "#7700ff" })
       .setDepth(20002)
       .setScrollFactor(0);
     this.texts.combo = scene.add
@@ -68,7 +68,7 @@ export default class HUD {
       .text(0, 0, "CONTEXT OVERFLOW", {
         ...font,
         fontSize: "11px",
-        color: "#ff3333",
+        color: "#ff0033",
       })
       .setDepth(20002)
       .setScrollFactor(0)
@@ -77,7 +77,7 @@ export default class HUD {
       .text(0, 0, "", {
         fontFamily: '"Share Tech Mono", monospace',
         fontSize: "18px",
-        color: "#ff3333",
+        color: "#ff0033",
       })
       .setDepth(20002)
       .setScrollFactor(0)
@@ -133,19 +133,19 @@ export default class HUD {
     const pct = Phaser.Math.Clamp(this.contextLevel / 100, 0, 1);
     const barColor =
       pct > 0.8
-        ? 0xff2222
+        ? 0xff0033
         : pct > 0.6
-        ? 0xff7700
+        ? 0xff0066
         : pct > 0.4
-        ? 0xffcc00
-        : 0x00ddff;
+        ? 0xff0080
+        : 0x00ffee;
     this.contextGfx.fillStyle(0x27272a, 0.5);
     this.contextGfx.fillRect(0, 0, w, 2);
     this.contextGfx.fillStyle(barColor, 0.9);
     this.contextGfx.fillRect(0, 0, w * pct, 2);
     if (pct > 0.8) {
       this.contextGfx.fillStyle(
-        0xff2222,
+        0xff0033,
         0.3 + Math.sin(Date.now() * 0.008) * 0.25
       );
       this.contextGfx.fillRect(0, 0, w * pct, 2);
@@ -155,7 +155,7 @@ export default class HUD {
     this.texts.layer.setText(`L${this.layer}`).setPosition(8, 6);
     const ctxStr = Math.floor(this.contextLevel) + "%";
     this.texts.ctxPct.setText(ctxStr).setPosition(50, 8);
-    this.texts.ctxPct.setColor(this.collapseActive ? "#ff3333" : "#7080aa");
+    this.texts.ctxPct.setColor(this.collapseActive ? "#ff0033" : "#FFFFFF");
 
     const botY = h - 24;
     this.gfx.fillStyle(0x000000, 0.35);
@@ -163,7 +163,7 @@ export default class HUD {
 
     const hpPct = this.health / this.maxHealth;
     const hpColor =
-      hpPct > 0.5 ? "#00e89a" : hpPct > 0.25 ? "#ffcc00" : "#ff3333";
+      hpPct > 0.5 ? "#00ffee" : hpPct > 0.25 ? "#ff0080" : "#ff0033";
     this.texts.hp
       .setText(`HP [${this.bar(hpPct, 10)}] ${Math.ceil(this.health)}`)
       .setPosition(10, botY + 5)
@@ -181,7 +181,7 @@ export default class HUD {
 
     if (this.combo >= 3) {
       const cc =
-        this.combo >= 10 ? "#ffcc00" : this.combo >= 5 ? "#00ddff" : "#9999bb";
+        this.combo >= 10 ? "#ff0080" : this.combo >= 5 ? "#00ffee" : "#bb88dd";
       const label =
         this.combo >= 10 ? "RAMPAGE" : this.combo >= 5 ? "STREAK" : "COMBO";
       this.texts.combo

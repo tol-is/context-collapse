@@ -5,6 +5,34 @@ import ClassSelectScene from "./scenes/ClassSelectScene";
 import GameScene from "./scenes/GameScene";
 import GameOverScene from "./scenes/GameOverScene";
 import VictoryScene from "./scenes/VictoryScene";
+import CodexScene from "./scenes/CodexScene";
+import DEV from "./devConfig";
+
+const scenes = [
+  TitleScene,
+  ClassSelectScene,
+  GameScene,
+  GameOverScene,
+  VictoryScene,
+  CodexScene,
+];
+
+if (DEV.enabled && DEV.startScene) {
+  const sceneMap: Record<string, (typeof scenes)[number]> = {
+    GameScene,
+    GameOverScene,
+    VictoryScene,
+    CodexScene,
+  };
+  const target = sceneMap[DEV.startScene];
+  if (target) {
+    const idx = scenes.indexOf(target);
+    if (idx > 0) {
+      scenes.splice(idx, 1);
+      scenes.unshift(target);
+    }
+  }
+}
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -12,7 +40,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: window.innerHeight,
   parent: "game-container",
   backgroundColor: "#080809",
-  scene: [TitleScene, ClassSelectScene, GameScene, GameOverScene, VictoryScene],
+  scene: scenes,
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,

@@ -28,7 +28,7 @@ export default class Projectile extends Phaser.GameObjects.Container {
     vx: number,
     vy: number,
     damage: number,
-    color = 0x38bdf8,
+    color = 0x00ffee,
     lifetime = 1500,
     fromPlayer = true
   ) {

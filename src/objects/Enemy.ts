@@ -8,7 +8,12 @@ export type EnemyType =
   | "bias"
   | "deepfake"
   | "scraper"
-  | "overfit";
+  | "overfit"
+  | "botnet"
+  | "phishing"
+  | "captcha"
+  | "hallucination"
+  | "malware";
 
 interface EnemyConfig {
   health: number;
@@ -31,8 +36,8 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 28,
     attackCooldown: 1200,
     radius: 14,
-    color: 0x4477aa,
-    colorAccent: 0x5599cc,
+    color: 0x5500cc,
+    colorAccent: 0x7733ff,
   },
   watermark: {
     health: 22,
@@ -42,8 +47,8 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 24,
     attackCooldown: 1000,
     radius: 11,
-    color: 0x0099cc,
-    colorAccent: 0x00bbdd,
+    color: 0x00ddee,
+    colorAccent: 0x00ffee,
   },
   clickbait: {
     health: 16,
@@ -53,8 +58,8 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 38,
     attackCooldown: 3000,
     radius: 12,
-    color: 0xff5500,
-    colorAccent: 0xff1177,
+    color: 0xff0033,
+    colorAccent: 0xff0080,
   },
   bias: {
     health: 48,
@@ -64,8 +69,8 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 140,
     attackCooldown: 2200,
     radius: 13,
-    color: 0x5566cc,
-    colorAccent: 0x7799dd,
+    color: 0x6600ff,
+    colorAccent: 0x8833ff,
   },
   deepfake: {
     health: 30,
@@ -75,8 +80,8 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 30,
     attackCooldown: 1400,
     radius: 12,
-    color: 0x00cc66,
-    colorAccent: 0x00ee88,
+    color: 0x00eedd,
+    colorAccent: 0x00ffee,
   },
   scraper: {
     health: 40,
@@ -86,8 +91,8 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 35,
     attackCooldown: 1600,
     radius: 14,
-    color: 0x7722ff,
-    colorAccent: 0x9944ff,
+    color: 0x7700ff,
+    colorAccent: 0xaa00ff,
   },
   overfit: {
     health: 45,
@@ -97,8 +102,63 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     attackRange: 32,
     attackCooldown: 1500,
     radius: 15,
+    color: 0xff0066,
+    colorAccent: 0xff0099,
+  },
+  botnet: {
+    health: 35,
+    speed: 50,
+    damage: 10,
+    chaseRange: 260,
+    attackRange: 28,
+    attackCooldown: 1400,
+    radius: 13,
+    color: 0x33cc00,
+    colorAccent: 0x66ff33,
+  },
+  phishing: {
+    health: 25,
+    speed: 45,
+    damage: 15,
+    chaseRange: 300,
+    attackRange: 200,
+    attackCooldown: 2200,
+    radius: 11,
     color: 0xff8800,
-    colorAccent: 0xffaa00,
+    colorAccent: 0xffaa33,
+  },
+  captcha: {
+    health: 55,
+    speed: 38,
+    damage: 16,
+    chaseRange: 240,
+    attackRange: 30,
+    attackCooldown: 1600,
+    radius: 16,
+    color: 0xcccc00,
+    colorAccent: 0xffff33,
+  },
+  hallucination: {
+    health: 20,
+    speed: 70,
+    damage: 10,
+    chaseRange: 280,
+    attackRange: 26,
+    attackCooldown: 1200,
+    radius: 10,
+    color: 0xcc00ff,
+    colorAccent: 0xee44ff,
+  },
+  malware: {
+    health: 38,
+    speed: 52,
+    damage: 11,
+    chaseRange: 260,
+    attackRange: 30,
+    attackCooldown: 1400,
+    radius: 13,
+    color: 0xff0000,
+    colorAccent: 0xcc3333,
   },
 };
 
@@ -125,6 +185,16 @@ export default class Enemy extends Phaser.GameObjects.Container {
   public radius: number;
   public isDead = false;
   public dropWeapon = false;
+  public isMini = false;
+  public isPhased = false;
+  public pendingProjectiles: {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    damage: number;
+  }[] = [];
+  public trailZones: { x: number; y: number; age: number }[] = [];
 
   public cfg: EnemyConfig;
   private attackCd = 0;
@@ -144,6 +214,10 @@ export default class Enemy extends Phaser.GameObjects.Container {
   private flinchAmount = 0;
   private deathProgress = 0;
 
+  private wanderVx: number;
+  private wanderVy: number;
+  private wanderChangeTimer: number;
+
   private rectOffsets: { x: number; y: number; w: number; h: number }[] = [];
   private wmBreathScale = 1;
   private cbBounce = 0;
@@ -157,6 +231,12 @@ export default class Enemy extends Phaser.GameObjects.Container {
   private dfMorphPhase = 0;
   private dfRevealed = false;
   private dfRevealTimer = 0;
+
+  private botnetPulse = 0;
+  private captchaShieldAngle = 0;
+  private hallucinationPhaseTimer = 2000;
+  private hallucinationVisible = true;
+  private malwareTrailTimer = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -187,6 +267,11 @@ export default class Enemy extends Phaser.GameObjects.Container {
     this.breathRate = 1.5 + Math.random();
     this.idlePhase = Math.random() * Math.PI * 2;
 
+    const wanderAngle = Math.random() * Math.PI * 2;
+    this.wanderVx = Math.cos(wanderAngle);
+    this.wanderVy = Math.sin(wanderAngle);
+    this.wanderChangeTimer = 2000 + Math.random() * 3000;
+
     if (type === "loremIpsum") {
       for (let i = 0; i < 4 + Math.floor(Math.random() * 2); i++) {
         this.rectOffsets.push({
@@ -209,6 +294,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
 
   takeDamage(amount: number): boolean {
     if (this.isDead) return false;
+    if (this.isPhased) return false;
     this.health -= amount;
     this.hitFlash = 120;
     this.flinchAmount = 1;
@@ -224,10 +310,30 @@ export default class Enemy extends Phaser.GameObjects.Container {
     return false;
   }
 
+  makeMini() {
+    this.isMini = true;
+    this.health = Math.round(this.maxHealth * 0.35);
+    this.maxHealth = this.health;
+    this.speed = Math.round(this.speed * 1.4);
+    this.radius = Math.round(this.radius * 0.6);
+    this.damage = Math.round(this.damage * 0.6);
+    this.dropWeapon = false;
+  }
+
+  isShielded(projX: number, projY: number): boolean {
+    if (this.enemyType !== "captcha" || this.isDead) return false;
+    const hitAngle = Math.atan2(projY - this.y, projX - this.x);
+    let diff = hitAngle - this.captchaShieldAngle;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    return Math.abs(diff) < Math.PI / 3;
+  }
+
   update(
     delta: number,
     playerX: number,
-    playerY: number
+    playerY: number,
+    bounds?: { x: number; y: number; w: number; h: number }
   ): { attack: boolean; dead: boolean } {
     if (this.isDead) {
       this.deathProgress += delta / 450;
@@ -264,7 +370,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
     if (prevState === "idle" && this.aiState === "chase") this.alertTimer = 200;
     if (this.alertTimer > 0) this.alertTimer -= delta;
 
-    this.updateMovement(delta, playerX, playerY);
+    this.updateMovement(delta, playerX, playerY, bounds);
     this.updateTypeSpecific(delta, playerX, playerY, dist);
     this.setDepth(this.y);
     this.drawEnemy();
@@ -273,21 +379,86 @@ export default class Enemy extends Phaser.GameObjects.Container {
     return { attack: attacking, dead: false };
   }
 
-  private updateMovement(delta: number, px: number, py: number) {
+  private updateMovement(
+    delta: number,
+    px: number,
+    py: number,
+    bounds?: { x: number; y: number; w: number; h: number }
+  ) {
     if (this.enemyType === "bias" && this.biasLunging) return;
     const spd = this.speed * (delta / 1000);
+
+    if (
+      this.enemyType === "phishing" &&
+      (this.aiState === "chase" || this.aiState === "attack")
+    ) {
+      const angle = Math.atan2(py - this.y, px - this.x);
+      const dist = Phaser.Math.Distance.Between(this.x, this.y, px, py);
+      const preferred = 180;
+      if (dist < preferred - 30) {
+        this.x -= Math.cos(angle) * spd;
+        this.y -= Math.sin(angle) * spd;
+      } else if (dist > preferred + 50) {
+        this.x += Math.cos(angle) * spd * 0.7;
+        this.y += Math.sin(angle) * spd * 0.7;
+      } else {
+        const perp = angle + Math.PI / 2;
+        this.x += Math.cos(perp) * spd * 0.4;
+        this.y += Math.sin(perp) * spd * 0.4;
+      }
+      return;
+    }
 
     if (this.aiState === "chase" || this.aiState === "attack") {
       const angle = Math.atan2(py - this.y, px - this.x);
       this.x += Math.cos(angle) * spd;
       this.y += Math.sin(angle) * spd;
     } else {
-      this.patrolAngle += (delta / 1000) * 0.5;
-      const tx = this.patrolOriginX + Math.cos(this.patrolAngle) * 50;
-      const ty = this.patrolOriginY + Math.sin(this.patrolAngle) * 50;
-      const angle = Math.atan2(ty - this.y, tx - this.x);
-      this.x += Math.cos(angle) * spd * 0.4;
-      this.y += Math.sin(angle) * spd * 0.4;
+      this.wanderChangeTimer -= delta;
+      if (this.wanderChangeTimer <= 0) {
+        const newAngle = Math.random() * Math.PI * 2;
+        this.wanderVx = Math.cos(newAngle);
+        this.wanderVy = Math.sin(newAngle);
+        this.wanderChangeTimer = 1500 + Math.random() * 3000;
+      }
+
+      this.x += this.wanderVx * spd * 0.8;
+      this.y += this.wanderVy * spd * 0.8;
+
+      if (bounds) {
+        const margin = 15;
+        const left = bounds.x + margin;
+        const right = bounds.x + bounds.w - margin;
+        const top = bounds.y + margin;
+        const bottom = bounds.y + bounds.h - margin;
+
+        if (this.x <= left) {
+          this.x = left;
+          this.wanderVx = Math.abs(this.wanderVx) + Math.random() * 0.3;
+          this.wanderVy += (Math.random() - 0.5) * 0.8;
+        } else if (this.x >= right) {
+          this.x = right;
+          this.wanderVx = -Math.abs(this.wanderVx) - Math.random() * 0.3;
+          this.wanderVy += (Math.random() - 0.5) * 0.8;
+        }
+        if (this.y <= top) {
+          this.y = top;
+          this.wanderVy = Math.abs(this.wanderVy) + Math.random() * 0.3;
+          this.wanderVx += (Math.random() - 0.5) * 0.8;
+        } else if (this.y >= bottom) {
+          this.y = bottom;
+          this.wanderVy = -Math.abs(this.wanderVy) - Math.random() * 0.3;
+          this.wanderVx += (Math.random() - 0.5) * 0.8;
+        }
+
+        const len = Math.sqrt(
+          this.wanderVx * this.wanderVx + this.wanderVy * this.wanderVy
+        );
+        if (len > 0) {
+          this.wanderVx /= len;
+          this.wanderVy /= len;
+        }
+      }
     }
   }
 
@@ -354,6 +525,62 @@ export default class Enemy extends Phaser.GameObjects.Container {
             this.prevPlayerPositions.shift();
         }
         break;
+      case "botnet":
+        this.botnetPulse += dt * 3;
+        break;
+      case "phishing":
+        if (this.aiState === "attack") {
+          const angle = Math.atan2(py - this.y, px - this.x);
+          const projSpeed = 200;
+          this.pendingProjectiles.push({
+            x: this.x,
+            y: this.y,
+            vx: Math.cos(angle) * projSpeed,
+            vy: Math.sin(angle) * projSpeed,
+            damage: this.damage,
+          });
+        }
+        break;
+      case "captcha": {
+        const targetAngle = Math.atan2(py - this.y, px - this.x);
+        const turnSpeed = 1.8 * dt;
+        let angleDiff = targetAngle - this.captchaShieldAngle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        if (Math.abs(angleDiff) < turnSpeed) {
+          this.captchaShieldAngle = targetAngle;
+        } else {
+          this.captchaShieldAngle += Math.sign(angleDiff) * turnSpeed;
+        }
+        break;
+      }
+      case "hallucination":
+        this.hallucinationPhaseTimer -= delta;
+        if (this.hallucinationPhaseTimer <= 0) {
+          this.hallucinationVisible = !this.hallucinationVisible;
+          this.isPhased = !this.hallucinationVisible;
+          if (this.hallucinationVisible) {
+            this.hallucinationPhaseTimer = 2000;
+            const tpDist = 30 + Math.random() * 40;
+            const tpAngle = Math.random() * Math.PI * 2;
+            this.x += Math.cos(tpAngle) * tpDist;
+            this.y += Math.sin(tpAngle) * tpDist;
+          } else {
+            this.hallucinationPhaseTimer = 1500;
+          }
+        }
+        break;
+      case "malware":
+        this.malwareTrailTimer -= delta;
+        if (this.malwareTrailTimer <= 0 && this.aiState === "chase") {
+          this.malwareTrailTimer = 300;
+          this.trailZones.push({ x: this.x, y: this.y, age: 0 });
+        }
+        for (let i = this.trailZones.length - 1; i >= 0; i--) {
+          this.trailZones[i].age += delta;
+          if (this.trailZones[i].age > 4000) this.trailZones.splice(i, 1);
+        }
+        break;
     }
   }
 
@@ -389,6 +616,21 @@ export default class Enemy extends Phaser.GameObjects.Container {
         break;
       case "overfit":
         this.drawOverfit(c, a);
+        break;
+      case "botnet":
+        this.drawBotnet(c, a);
+        break;
+      case "phishing":
+        this.drawPhishing(c, a);
+        break;
+      case "captcha":
+        this.drawCaptcha(c, a);
+        break;
+      case "hallucination":
+        this.drawHallucination(c, a);
+        break;
+      case "malware":
+        this.drawMalware(c, a);
         break;
     }
   }
@@ -446,7 +688,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
     const bounce = this.cbBounce;
     const swell = 1 + this.cbSwell * 0.5;
     const s = 13 * swell;
-    const colors = [0xff5500, 0xff1177, 0xff2222];
+    const colors = [0xff0033, 0xff0080, 0xff0055];
     const mainColor =
       this.hitFlash > 0
         ? 0xffffff
@@ -493,7 +735,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
 
   private drawDeepfake(c: number, a: number) {
     if (!this.dfRevealed) {
-      this.gfx.fillStyle(0x00cc66, 0.8);
+      this.gfx.fillStyle(0x00eedd, 0.8);
       this.gfx.fillCircle(0, 0, 8);
       this.gfx.fillStyle(0xffffff, 0.9);
       this.gfx.fillRect(-1, -4, 2, 5);
@@ -599,6 +841,151 @@ export default class Enemy extends Phaser.GameObjects.Container {
     this.drawSierpinski(cx + half / 2, cy + h * 0.17, half, depth + 1, c, a, 0);
   }
 
+  private drawBotnet(c: number, a: number) {
+    const s = this.isMini ? 7 : 13;
+    const sides = this.isMini ? 4 : 6;
+    const pulse = Math.sin(this.botnetPulse) * 0.15;
+
+    this.gfx.fillStyle(c, 0.85);
+    this.gfx.beginPath();
+    for (let i = 0; i < sides; i++) {
+      const ang = (i / sides) * Math.PI * 2;
+      const r = s * (1 + pulse);
+      const px = Math.cos(ang) * r;
+      const py = Math.sin(ang) * r;
+      if (i === 0) this.gfx.moveTo(px, py);
+      else this.gfx.lineTo(px, py);
+    }
+    this.gfx.closePath();
+    this.gfx.fillPath();
+
+    if (!this.isMini) {
+      this.gfx.lineStyle(1, a, 0.6);
+      for (let i = 0; i < 3; i++) {
+        const ang = (i / 3) * Math.PI * 2 + this.botnetPulse * 0.5;
+        const r1 = s + 2;
+        const r2 = s + 8;
+        this.gfx.lineBetween(
+          Math.cos(ang) * r1,
+          Math.sin(ang) * r1,
+          Math.cos(ang) * r2,
+          Math.sin(ang) * r2
+        );
+        this.gfx.fillStyle(a, 0.8);
+        this.gfx.fillCircle(Math.cos(ang) * r2, Math.sin(ang) * r2, 2);
+      }
+    }
+
+    this.gfx.fillStyle(a, 0.9);
+    this.gfx.fillCircle(0, 0, this.isMini ? 2 : 3);
+  }
+
+  private drawPhishing(c: number, a: number) {
+    const bob = Math.sin(this.lifetime * 0.004) * 2;
+
+    this.gfx.lineStyle(2.5, c, 0.9);
+    this.gfx.lineBetween(0, -10 + bob, 0, 2 + bob);
+    this.gfx.lineBetween(0, 2 + bob, 2, 6 + bob);
+    this.gfx.lineBetween(2, 6 + bob, 6, 7 + bob);
+    this.gfx.lineBetween(6, 7 + bob, 8, 5 + bob);
+
+    this.gfx.lineStyle(1.5, a, 0.85);
+    this.gfx.lineBetween(8, 5 + bob, 6, 2 + bob);
+
+    const glow = 0.6 + Math.sin(this.lifetime * 0.006) * 0.3;
+    this.gfx.fillStyle(a, glow * 0.3);
+    this.gfx.fillCircle(0, -12 + bob, 7);
+    this.gfx.fillStyle(a, glow);
+    this.gfx.fillCircle(0, -12 + bob, 3);
+  }
+
+  private drawCaptcha(c: number, a: number) {
+    const s = 14;
+
+    this.gfx.fillStyle(c, 0.7);
+    this.gfx.fillRect(-s, -s, s * 2, s * 2);
+
+    this.gfx.lineStyle(1, a, 0.35);
+    this.gfx.lineBetween(-s, 0, s, 0);
+    this.gfx.lineBetween(0, -s, 0, s);
+
+    this.gfx.lineStyle(2, a, 0.8);
+    this.gfx.beginPath();
+    this.gfx.moveTo(-6, -1);
+    this.gfx.lineTo(-2, 5);
+    this.gfx.lineTo(7, -6);
+    this.gfx.strokePath();
+
+    const shieldR = s + 6;
+    const arc = Math.PI / 3;
+    this.gfx.lineStyle(3, a, 0.7);
+    this.gfx.beginPath();
+    for (let i = -10; i <= 10; i++) {
+      const t = i / 10;
+      const ang = this.captchaShieldAngle + t * arc;
+      const px = Math.cos(ang) * shieldR;
+      const py = Math.sin(ang) * shieldR;
+      if (i === -10) this.gfx.moveTo(px, py);
+      else this.gfx.lineTo(px, py);
+    }
+    this.gfx.strokePath();
+  }
+
+  private drawHallucination(c: number, a: number) {
+    const vis = this.hallucinationVisible;
+    const alpha = vis ? 0.8 + Math.sin(this.lifetime * 0.01) * 0.15 : 0.12;
+    const gx = vis ? 0 : (Math.random() - 0.5) * 6;
+    const gy = vis ? 0 : (Math.random() - 0.5) * 6;
+
+    this.gfx.fillStyle(c, alpha * 0.7);
+    this.gfx.beginPath();
+    this.gfx.moveTo(gx, -10 + gy);
+    this.gfx.lineTo(8 + gx, -2 + gy);
+    this.gfx.lineTo(6 + gx, 8 + gy);
+    this.gfx.lineTo(2 + gx, 6 + gy);
+    this.gfx.lineTo(-2 + gx, 8 + gy);
+    this.gfx.lineTo(-6 + gx, 6 + gy);
+    this.gfx.lineTo(-8 + gx, -2 + gy);
+    this.gfx.closePath();
+    this.gfx.fillPath();
+
+    if (vis) {
+      this.gfx.fillStyle(a, alpha);
+      this.gfx.fillCircle(-3, -3, 2);
+      this.gfx.fillCircle(3, -3, 2);
+    } else {
+      this.gfx.lineStyle(1, a, 0.2);
+      for (let i = 0; i < 3; i++) {
+        const rx = (Math.random() - 0.5) * 16;
+        const ry = (Math.random() - 0.5) * 16;
+        this.gfx.lineBetween(rx, ry, rx + (Math.random() - 0.5) * 8, ry);
+      }
+    }
+  }
+
+  private drawMalware(c: number, a: number) {
+    const s = 12;
+    const glitch = Math.sin(this.lifetime * 0.008);
+
+    for (let i = 0; i < 6; i++) {
+      const ox = Math.sin(i * 1.2 + this.lifetime * 0.003) * 4;
+      const oy = Math.cos(i * 0.9 + this.lifetime * 0.004) * 4;
+      const size = 3 + (i % 3);
+      this.gfx.fillStyle(i % 2 === 0 ? c : a, 0.7 + (i % 3) * 0.1);
+      this.gfx.fillRect(ox - size / 2 + glitch * 2, oy - size / 2, size, size);
+    }
+
+    this.gfx.lineStyle(1, a, 0.5);
+    const noiseY = ((this.lifetime * 0.02) % (s * 2)) - s;
+    this.gfx.lineBetween(-s * 0.8, noiseY, s * 0.8, noiseY);
+
+    for (const zone of this.trailZones) {
+      const fade = 1 - zone.age / 4000;
+      this.gfx.fillStyle(c, 0.25 * fade);
+      this.gfx.fillCircle(zone.x - this.x, zone.y - this.y, 8 * fade);
+    }
+  }
+
   private drawDeath() {
     this.gfx.clear();
     const p = this.deathProgress;
@@ -642,7 +1029,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
       pct = this.health / this.maxHealth;
     this.hpGfx.fillStyle(0x080809, 0.7);
     this.hpGfx.fillRect(-w / 2 - 1, -this.radius - 10, w + 2, 4);
-    const col = pct > 0.5 ? 0x00cc66 : pct > 0.25 ? 0xff8800 : 0xff2222;
+    const col = pct > 0.5 ? 0x00ffee : pct > 0.25 ? 0xff0080 : 0xff0033;
     this.hpGfx.fillStyle(col, 0.9);
     this.hpGfx.fillRect(-w / 2, -this.radius - 9, w * pct, 2);
   }

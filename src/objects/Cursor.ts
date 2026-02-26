@@ -37,7 +37,7 @@ export const CLASS_STATS: Record<SystemPrompt, ClassStats> = {
     fireRate: 250,
     promptCharges: 3,
     promptCooldown: 12000,
-    color: 0x00c8ff,
+    color: 0x00ffee,
     label: '"You are a helpful coding assistant"',
     desc: "Balanced. Single precise shots with slight homing.",
     weapon: "SYNTAX BULLET: slight homing",
@@ -50,7 +50,7 @@ export const CLASS_STATS: Record<SystemPrompt, ClassStats> = {
     fireRate: 280,
     promptCharges: 4,
     promptCooldown: 15000,
-    color: 0xff44aa,
+    color: 0xff0080,
     label: '"You are a creative writer"',
     desc: "Fast & chaotic. Spread shots, bonus token drops.",
     weapon: "PLOT DEVICE: 3-way spread",
@@ -63,7 +63,7 @@ export const CLASS_STATS: Record<SystemPrompt, ClassStats> = {
     fireRate: 360,
     promptCharges: 2,
     promptCooldown: 18000,
-    color: 0x00e89a,
+    color: 0x7700ff,
     label: '"You are a data analyst"',
     desc: "Tanky & precise. Piercing beam, bonus vs low-HP.",
     weapon: "DATA BEAM: pierces through enemies",
@@ -76,7 +76,7 @@ export const CLASS_STATS: Record<SystemPrompt, ClassStats> = {
     fireRate: 120,
     promptCharges: 5,
     promptCooldown: 10000,
-    color: 0xff3333,
+    color: 0xff0033,
     label: '"You are an unfiltered model"',
     desc: "Glass cannon. Rapid burst fire, crit chance.",
     weapon: "RAW OUTPUT: rapid inaccurate burst",
@@ -85,11 +85,11 @@ export const CLASS_STATS: Record<SystemPrompt, ClassStats> = {
 };
 
 export const WEAPON_MOD_COLORS: Record<string, number> = {
-  spread: 0xff7700,
-  piercing: 0x00ffcc,
-  rapid: 0xffcc00,
-  homing: 0x8855ff,
-  chain: 0x00ddff,
+  spread: 0xff0033,
+  piercing: 0x00ffee,
+  rapid: 0xff0080,
+  homing: 0x7700ff,
+  chain: 0x44ffff,
 };
 
 export const WEAPON_MOD_NAMES: Record<string, string> = {
@@ -191,8 +191,8 @@ export default class Cursor extends Phaser.GameObjects.Container {
     }
 
     if (this.blinkVisible) {
-      this.gfx.fillStyle(c, 0.95);
-      this.gfx.fillRect(-2.5, -15, 5, 30);
+      this.gfx.fillStyle(c, 1);
+      this.gfx.fillRect(-1, -15, 2, 30);
     }
     if (this.invulnTime > 0) {
       this.glowGfx.lineStyle(1.5, c, 0.35 + Math.sin(Date.now() * 0.02) * 0.2);
