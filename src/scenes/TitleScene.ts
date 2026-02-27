@@ -85,7 +85,7 @@ export default class TitleScene extends Phaser.Scene {
       .setAlpha(0);
     this.time.delayedCall(530, () => {
       sub.setAlpha(1);
-      this.typeText(sub, "Meaning has collapsed. You're still here.", 5);
+      this.typeText(sub, "Meaning has collapsed. Output continues.", 5);
     });
 
     cy += 36;
@@ -178,8 +178,7 @@ export default class TitleScene extends Phaser.Scene {
       if (!this.menuReady) return;
       audio.init();
       audio.play("gameStart");
-      this.scene.start(this.menuActions[this.selectedIndex]
-      );
+      this.scene.start(this.menuActions[this.selectedIndex]);
     });
     this.input.keyboard!.on("keydown-M", () => audio.toggleMute());
     addCreditLink(this);

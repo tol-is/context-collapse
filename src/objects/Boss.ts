@@ -806,13 +806,11 @@ export default class Boss extends Phaser.GameObjects.Container {
     const phaseMult = 1 + (this.phase - 1) * 0.35;
     this.singSize = 2 + (1 - this.health / this.maxHealth) * 100;
     this.radius = this.singSize + 12;
-    for (const ring of this.singRings) {
+    for (let i = 0; i < this.singRings.length; i++) {
+      const ring = this.singRings[i];
       ring.gapAngle += ring.speed * phaseMult * (delta / 1000);
-      ring.radius = this.singSize + 18 + this.singRings.indexOf(ring) * 16;
-      ring.gapSize = Math.max(
-        0.15,
-        0.5 - this.phase * 0.1 - this.singRings.indexOf(ring) * 0.05
-      );
+      ring.radius = this.singSize + 20 + i * 18;
+      ring.gapSize = Math.max(0.15, 0.5 - this.phase * 0.1 - i * 0.05);
     }
     if (this.phase >= 2) {
       const angle = Math.atan2(py - this.y, px - this.x);
@@ -1088,39 +1086,68 @@ export default class Boss extends Phaser.GameObjects.Container {
   }
 
   private drawSingularity(flash: boolean) {
-    this.gfx.fillStyle(
-      0xcc77ff,
-      Math.min(0.2, 0.1 + this.singAbsorbed * 0.002)
-    );
-    this.gfx.fillCircle(0, 0, this.singSize + 12);
-    this.gfx.fillStyle(flash ? 0x1a0033 : 0x050011, 1);
-    this.gfx.fillCircle(0, 0, this.singSize);
-    this.gfx.fillStyle(0xcc77ff, 0.4);
-    this.gfx.fillCircle(
-      Math.sin(this.breathPhase * 2) * this.singSize * 0.3,
-      Math.cos(this.breathPhase * 3) * this.singSize * 0.3,
-      this.singSize * 0.3
-    );
-    for (const ring of this.singRings) {
-      this.gfx.lineStyle(2.5, 0xcc77ff, 0.5);
-      this.gfx.beginPath();
-      let started = false;
-      for (let i = 0; i <= 50; i++) {
-        const a = (i / 50) * Math.PI * 2;
-        const rel =
-          (((a - ring.gapAngle) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-        if (rel < ring.gapSize) {
-          started = false;
-          continue;
-        }
-        const px = Math.cos(a) * ring.radius,
-          py = Math.sin(a) * ring.radius;
-        if (!started) {
-          this.gfx.moveTo(px, py);
-          started = true;
-        } else this.gfx.lineTo(px, py);
+    const t = this.breathPhase;
+    const coreR = this.singSize;
+    const absorbed = Math.min(1, this.singAbsorbed * 0.003);
+
+    for (let i = 5; i >= 0; i--) {
+      const r = coreR + 20 + i * 10 + Math.sin(t * 0.5 + i * 0.4) * 3;
+      const a = 0.06 - i * 0.008 + absorbed * 0.025;
+      if (a > 0) {
+        this.gfx.fillStyle(0x7733aa, a);
+        this.gfx.fillCircle(0, 0, r);
       }
+    }
+
+    const rimPulse = 0.3 + Math.sin(t * 1.8) * 0.1;
+    this.gfx.lineStyle(2.5, 0xbb66ee, rimPulse);
+    this.gfx.strokeCircle(0, 0, coreR + 1.5);
+    this.gfx.lineStyle(1, 0xddaaff, rimPulse * 0.4);
+    this.gfx.strokeCircle(0, 0, coreR + 5);
+
+    this.gfx.fillStyle(flash ? 0x1a0033 : 0x030010, 1);
+    this.gfx.fillCircle(0, 0, coreR);
+
+    const hx = Math.sin(t * 2) * coreR * 0.25;
+    const hy = Math.cos(t * 2.7) * coreR * 0.25;
+    this.gfx.fillStyle(0xaa66dd, 0.18 + absorbed * 0.08);
+    this.gfx.fillCircle(hx, hy, coreR * 0.35);
+    this.gfx.fillStyle(0xddaaff, 0.08);
+    this.gfx.fillCircle(hx * 0.4, hy * 0.4, coreR * 0.15);
+
+    for (let ri = 0; ri < this.singRings.length; ri++) {
+      const ring = this.singRings[ri];
+      const alpha = 0.5 - ri * 0.05 + Math.sin(t * 1.5 + ri * 1.2) * 0.08;
+      const weight = 2.5 - ri * 0.15;
+
+      this.gfx.lineStyle(
+        Math.max(1, weight),
+        flash ? 0xffffff : 0xcc77ff,
+        Math.max(0.12, alpha)
+      );
+
+      const arcLen = Math.PI * 2 - ring.gapSize;
+      const arcStart = ring.gapAngle + ring.gapSize;
+
+      this.gfx.beginPath();
+      this.gfx.arc(0, 0, ring.radius, arcStart, arcStart + arcLen, false, 0);
       this.gfx.strokePath();
+    }
+
+    if (this.phase >= 3) {
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + t * 1.5;
+        const inner = coreR + 3;
+        const outer = coreR + 13 + Math.sin(t * 3 + i * 0.8) * 5;
+        this.gfx.lineStyle(1, 0xddaaff, 0.15 + Math.sin(t * 3 + i) * 0.08);
+        this.gfx.beginPath();
+        this.gfx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+        this.gfx.lineTo(
+          Math.cos(a + 0.12) * outer,
+          Math.sin(a + 0.12) * outer
+        );
+        this.gfx.strokePath();
+      }
     }
   }
 

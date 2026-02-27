@@ -858,43 +858,51 @@ const BOSSES: CreatureEntry[] = [
     story:
       "The final collapse. It grows with everything it absorbs, bending space around it. The rings are event horizons, find the gaps, or be consumed.",
     draw: (gfx, t) => {
-      const size = 18 + Math.sin(t * 0.5) * 4;
-      gfx.fillStyle(0xcc77ff, 0.15);
-      gfx.fillCircle(0, 0, size + 12);
-      gfx.fillStyle(0x050011, 1);
-      gfx.fillCircle(0, 0, size);
-      gfx.fillStyle(0xcc77ff, 0.4);
-      gfx.fillCircle(
-        Math.sin(t * 2) * size * 0.3,
-        Math.cos(t * 3) * size * 0.3,
-        size * 0.3
-      );
-      const rings = [
-        { radius: size + 18, speed: 0.8, gap: 0.5 },
-        { radius: size + 34, speed: -1.1, gap: 0.44 },
-        { radius: size + 50, speed: 1.4, gap: 0.38 },
-        { radius: size + 66, speed: -1.7, gap: 0.32 },
-      ];
-      for (const ring of rings) {
-        gfx.lineStyle(2.5, 0xcc77ff, 0.45);
-        gfx.beginPath();
-        let started = false;
-        const gapAngle = t * ring.speed;
-        for (let i = 0; i <= 50; i++) {
-          const a = (i / 50) * Math.PI * 2;
-          const rel =
-            (((a - gapAngle) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-          if (rel < ring.gap) {
-            started = false;
-            continue;
-          }
-          const px = Math.cos(a) * ring.radius;
-          const py = Math.sin(a) * ring.radius;
-          if (!started) {
-            gfx.moveTo(px, py);
-            started = true;
-          } else gfx.lineTo(px, py);
+      const coreR = 18 + Math.sin(t * 0.5) * 4;
+
+      for (let i = 5; i >= 0; i--) {
+        const r = coreR + 20 + i * 10 + Math.sin(t * 0.5 + i * 0.4) * 3;
+        const a = 0.06 - i * 0.008;
+        if (a > 0) {
+          gfx.fillStyle(0x7733aa, a);
+          gfx.fillCircle(0, 0, r);
         }
+      }
+
+      const rimPulse = 0.3 + Math.sin(t * 1.8) * 0.1;
+      gfx.lineStyle(2.5, 0xbb66ee, rimPulse);
+      gfx.strokeCircle(0, 0, coreR + 1.5);
+      gfx.lineStyle(1, 0xddaaff, rimPulse * 0.4);
+      gfx.strokeCircle(0, 0, coreR + 5);
+
+      gfx.fillStyle(0x030010, 1);
+      gfx.fillCircle(0, 0, coreR);
+
+      const hx = Math.sin(t * 2) * coreR * 0.25;
+      const hy = Math.cos(t * 2.7) * coreR * 0.25;
+      gfx.fillStyle(0xaa66dd, 0.18);
+      gfx.fillCircle(hx, hy, coreR * 0.35);
+      gfx.fillStyle(0xddaaff, 0.08);
+      gfx.fillCircle(hx * 0.4, hy * 0.4, coreR * 0.15);
+
+      const rings = [
+        { radius: coreR + 20, speed: 0.8, gap: 0.5 },
+        { radius: coreR + 38, speed: -1.1, gap: 0.44 },
+        { radius: coreR + 56, speed: 1.4, gap: 0.38 },
+        { radius: coreR + 74, speed: -1.7, gap: 0.32 },
+      ];
+      for (let ri = 0; ri < rings.length; ri++) {
+        const ring = rings[ri];
+        const alpha = 0.5 - ri * 0.05 + Math.sin(t * 1.5 + ri * 1.2) * 0.08;
+        const weight = 2.5 - ri * 0.15;
+        gfx.lineStyle(Math.max(1, weight), 0xcc77ff, Math.max(0.12, alpha));
+
+        const gapAngle = t * ring.speed;
+        const arcStart = gapAngle + ring.gap;
+        const arcLen = Math.PI * 2 - ring.gap;
+
+        gfx.beginPath();
+        gfx.arc(0, 0, ring.radius, arcStart, arcStart + arcLen, false, 0);
         gfx.strokePath();
       }
     },
