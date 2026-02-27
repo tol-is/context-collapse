@@ -18,6 +18,8 @@ export type WeaponMod =
   | "orbital"
   | "railgun"
   | "shockwave"
+  | "explosive"
+  | "laser"
   | null;
 
 interface ClassStats {
@@ -100,6 +102,8 @@ export const WEAPON_MOD_COLORS: Record<string, number> = {
   orbital: 0xff2200,
   railgun: 0x00eeff,
   shockwave: 0xffcc00,
+  explosive: 0xff4400,
+  laser: 0x00ff88,
 };
 
 export const WEAPON_MOD_NAMES: Record<string, string> = {
@@ -113,6 +117,8 @@ export const WEAPON_MOD_NAMES: Record<string, string> = {
   orbital: "ORBITAL STRIKE",
   railgun: "RAILGUN",
   shockwave: "SHOCKWAVE",
+  explosive: "PAYLOAD",
+  laser: "BEAM LANCE",
 };
 
 export default class Cursor extends Phaser.GameObjects.Container {
@@ -396,6 +402,58 @@ export default class Cursor extends Phaser.GameObjects.Container {
         });
       }
       this.fireCooldown = this.fireRate * 2.5;
+    } else if (mod === "explosive") {
+      const count = tier >= 5 ? 5 : tier >= 3 ? 3 : 1;
+      const arc = count > 1 ? 0.12 * count : 0;
+      for (let i = 0; i < count; i++) {
+        const spread =
+          count > 1 ? (i - (count - 1) / 2) * ((arc * 2) / (count - 1)) : 0;
+        const vx = Math.cos(angle + spread) * speed * 0.55;
+        const vy = Math.sin(angle + spread) * speed * 0.55;
+        const p = new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          vx,
+          vy,
+          finalDmg * (2.5 + tier * 0.4),
+          color,
+          lifetime * 1.4,
+          true
+        );
+        p.isExplosive = true;
+        p.explosiveRadius = 70 + tier * 15;
+        p.explosiveDamage = finalDmg * (1.2 + tier * 0.25);
+        p.explosiveCluster = tier >= 5;
+        p.radius = 10;
+        projectiles.push(p);
+      }
+      this.fireCooldown = this.fireRate * (tier >= 3 ? 2.2 : 1.8);
+    } else if (mod === "laser") {
+      const count = tier >= 5 ? 3 : tier >= 3 ? 2 : 1;
+      for (let i = 0; i < count; i++) {
+        const spread =
+          count > 1 ? (i - (count - 1) / 2) * 0.08 : 0;
+        const vx = Math.cos(angle + spread) * speed * 1.8;
+        const vy = Math.sin(angle + spread) * speed * 1.8;
+        const p = new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          vx,
+          vy,
+          finalDmg * (0.45 + tier * 0.06),
+          color,
+          lifetime * 0.7,
+          true
+        );
+        p.isLaser = true;
+        p.piercing = true;
+        p.piercingScale = 1;
+        p.radius = 4 + (tier >= 3 ? 3 : 0);
+        projectiles.push(p);
+      }
+      this.fireCooldown = this.fireRate * Math.max(0.12, 0.22 - tier * 0.02);
     } else if (mod === "railgun") {
       const vx = Math.cos(angle) * speed * 2.0;
       const vy = Math.sin(angle) * speed * 2.0;

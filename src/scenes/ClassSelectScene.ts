@@ -28,14 +28,19 @@ export default class ClassSelectScene extends Phaser.Scene {
   private blinkTimer = 0;
   private separatorY = 0;
   private detailTimers: Phaser.Time.TimerEvent[] = [];
+  private targetScene = "GameScene";
 
   constructor() {
     super("ClassSelectScene");
   }
 
+  init(data: { targetScene?: string }) {
+    this.targetScene = data?.targetScene ?? "GameScene";
+  }
+
   create() {
     if (DEV.enabled && DEV.defaultClass) {
-      this.scene.start("GameScene", { systemPrompt: DEV.defaultClass });
+      this.scene.start(this.targetScene, { systemPrompt: DEV.defaultClass });
       return;
     }
 
@@ -189,7 +194,7 @@ export default class ClassSelectScene extends Phaser.Scene {
 
   private confirm() {
     audio.play("classSelect");
-    this.scene.start("GameScene", {
+    this.scene.start(this.targetScene, {
       systemPrompt: CLASS_ORDER[this.selected],
     });
   }

@@ -52,11 +52,11 @@ const ZONE_ENEMIES: EnemyType[][] = [
 const ZONE_WEAPON_POOL: WeaponMod[][] = [
   ["spread", "rapid", "nova"],
   ["spread", "rapid", "piercing", "nova"],
-  ["spread", "rapid", "piercing", "homing", "nova", "shockwave"],
-  ["spread", "rapid", "piercing", "homing", "chain", "nova", "vortex", "shockwave"],
-  ["piercing", "homing", "chain", "spread", "rapid", "nova", "vortex", "orbital", "shockwave"],
-  ["homing", "chain", "spread", "piercing", "rapid", "nova", "vortex", "orbital", "railgun", "shockwave"],
-  ["spread", "piercing", "rapid", "homing", "chain", "nova", "vortex", "orbital", "railgun", "shockwave"],
+  ["spread", "rapid", "piercing", "homing", "nova", "shockwave", "explosive"],
+  ["spread", "rapid", "piercing", "homing", "chain", "nova", "vortex", "shockwave", "explosive", "laser"],
+  ["piercing", "homing", "chain", "spread", "rapid", "nova", "vortex", "orbital", "shockwave", "explosive", "laser"],
+  ["homing", "chain", "spread", "piercing", "rapid", "nova", "vortex", "orbital", "railgun", "shockwave", "explosive", "laser"],
+  ["spread", "piercing", "rapid", "homing", "chain", "nova", "vortex", "orbital", "railgun", "shockwave", "explosive", "laser"],
 ];
 
 type GameState =
@@ -402,10 +402,10 @@ export default class GameScene extends Phaser.Scene {
       4: "NEW WEAPON: piercing rounds unlocked",
       5: "NEW ENEMY: bias, lunging predator",
       7: "NEW ENEMY: botnet, splits on death + ddos swarm",
-      8: "NEW WEAPON: homing shots + shockwave unlocked",
+      8: "NEW WEAPON: homing + shockwave + PAYLOAD unlocked",
       10: "NEW ENEMY: deepfake + ransomware, the heavy lock",
       11: "NEW ENEMY: phishing, ranged threat",
-      13: "NEW WEAPON: chain lightning + orbital strike",
+      13: "NEW WEAPON: chain + orbital + BEAM LANCE unlocked",
       14: "NEW ENEMY: scraper + trojan, the deceiver",
       16: "NEW ENEMY: captcha, frontal shield",
       17: "NEW ENEMY: overfit, fractal hunter + zeroDay assassin",
@@ -959,6 +959,12 @@ export default class GameScene extends Phaser.Scene {
             this.projectiles.splice(pi, 1);
             break;
           }
+          if (proj.isExplosive) {
+            this.spawnExplosiveBlast(enemy.x, enemy.y, proj.explosiveDamage, proj.explosiveRadius, proj.color, proj.explosiveCluster);
+            proj.destroy();
+            this.projectiles.splice(pi, 1);
+            break;
+          }
           if (proj.chainBounces > 0 && killed) {
             const chainTarget = this.enemies.find(
               (e) =>
@@ -1085,6 +1091,98 @@ export default class GameScene extends Phaser.Scene {
           this.spawnPickup(e.x, e.y, e.dropWeapon);
           this.handleDeathEffects(e);
         }
+      }
+    }
+  }
+
+  private spawnExplosiveBlast(
+    x: number,
+    y: number,
+    damage: number,
+    blastRadius: number,
+    color: number,
+    cluster: boolean
+  ) {
+    this.cameras.main.shake(200, 0.008);
+    const gfx = this.add.graphics().setDepth(9500);
+    let r = 6;
+    const timer = this.time.addEvent({
+      delay: 16,
+      repeat: 25,
+      callback: () => {
+        r += (blastRadius - 6) / 18;
+        gfx.clear();
+        const p = timer.getProgress();
+        gfx.fillStyle(0xff6600, (1 - p) * 0.2);
+        gfx.fillCircle(x, y, r);
+        gfx.lineStyle(4 * (1 - p), color, (1 - p) * 0.95);
+        gfx.strokeCircle(x, y, r);
+        gfx.lineStyle(2 * (1 - p), 0xffaa00, (1 - p) * 0.7);
+        gfx.strokeCircle(x, y, r * 0.7);
+        gfx.fillStyle(0xffffff, (1 - p) * 0.4);
+        gfx.fillCircle(x, y, r * 0.2);
+        for (let i = 0; i < 6; i++) {
+          const ea = (i / 6) * Math.PI * 2 + p * 3;
+          const ed = r * (0.6 + p * 0.4);
+          gfx.fillStyle(0xff8800, (1 - p) * 0.6);
+          gfx.fillCircle(x + Math.cos(ea) * ed, y + Math.sin(ea) * ed, 3 * (1 - p));
+        }
+      },
+    });
+    this.time.delayedCall(450, () => gfx.destroy());
+
+    for (const e of this.enemies) {
+      if (
+        !e.isDead &&
+        Phaser.Math.Distance.Between(x, y, e.x, e.y) < blastRadius
+      ) {
+        const killed = e.takeDamage(damage);
+        if (killed) {
+          this.registerKill();
+          this.spawnPickup(e.x, e.y, e.dropWeapon);
+          this.handleDeathEffects(e);
+        }
+      }
+    }
+
+    if (cluster) {
+      for (let c = 0; c < 4; c++) {
+        const ca = (c / 4) * Math.PI * 2 + Math.random() * 0.5;
+        const cd = blastRadius * 0.5 + Math.random() * 20;
+        const cx = x + Math.cos(ca) * cd;
+        const cy = y + Math.sin(ca) * cd;
+        this.time.delayedCall(80 + c * 60, () => {
+          const cgfx = this.add.graphics().setDepth(9500);
+          let cr = 4;
+          const subR = blastRadius * 0.45;
+          const ct = this.time.addEvent({
+            delay: 16,
+            repeat: 15,
+            callback: () => {
+              cr += (subR - 4) / 12;
+              cgfx.clear();
+              const cp = ct.getProgress();
+              cgfx.fillStyle(0xff4400, (1 - cp) * 0.15);
+              cgfx.fillCircle(cx, cy, cr);
+              cgfx.lineStyle(2 * (1 - cp), 0xff6600, (1 - cp) * 0.8);
+              cgfx.strokeCircle(cx, cy, cr);
+            },
+          });
+          this.time.delayedCall(300, () => cgfx.destroy());
+          for (const e of this.enemies) {
+            if (
+              !e.isDead &&
+              Phaser.Math.Distance.Between(cx, cy, e.x, e.y) < subR
+            ) {
+              const killed = e.takeDamage(damage * 0.5);
+              if (killed) {
+                this.registerKill();
+                this.spawnPickup(e.x, e.y, e.dropWeapon);
+                this.handleDeathEffects(e);
+              }
+            }
+          }
+        });
       }
     }
   }

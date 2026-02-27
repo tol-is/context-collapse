@@ -19,6 +19,11 @@ export default class Projectile extends Phaser.GameObjects.Container {
   public isNova = false;
   public novaRadius = 60;
   public novaDamage = 0;
+  public isExplosive = false;
+  public explosiveRadius = 70;
+  public explosiveDamage = 0;
+  public explosiveCluster = false;
+  public isLaser = false;
 
   private gfx: Phaser.GameObjects.Graphics;
   public color: number;
@@ -81,7 +86,7 @@ export default class Projectile extends Phaser.GameObjects.Container {
     }
 
     this.trail.push({ x: this.x, y: this.y });
-    const maxTrail = this.chainBounces > 0 ? 10 : this.piercing ? 8 : 6;
+    const maxTrail = this.isLaser ? 14 : this.chainBounces > 0 ? 10 : this.piercing ? 8 : 6;
     if (this.trail.length > maxTrail) this.trail.shift();
 
     this.x += this.vx * (delta / 1000);
@@ -102,7 +107,83 @@ export default class Projectile extends Phaser.GameObjects.Container {
       );
     }
 
-    if (this.isNova) {
+    if (this.isExplosive) {
+      const spin = this.age * 0.004;
+      const s = 9;
+      // outer rotating square — reads as heavy/angular
+      this.gfx.fillStyle(this.color, 0.07);
+      for (let i = 0; i < 4; i++) {
+        const a = spin + (i / 4) * Math.PI * 2;
+        this.gfx.fillTriangle(
+          0, 0,
+          Math.cos(a) * 18, Math.sin(a) * 18,
+          Math.cos(a + Math.PI * 0.5) * 18, Math.sin(a + Math.PI * 0.5) * 18
+        );
+      }
+      // core diamond shape
+      const c = Math.cos(spin), sn = Math.sin(spin);
+      this.gfx.fillStyle(this.color, 0.85);
+      this.gfx.beginPath();
+      this.gfx.moveTo(c * s, sn * s);
+      this.gfx.lineTo(-sn * s, c * s);
+      this.gfx.lineTo(-c * s, -sn * s);
+      this.gfx.lineTo(sn * s, -c * s);
+      this.gfx.closePath();
+      this.gfx.fillPath();
+      // inner hot core
+      this.gfx.fillStyle(0xffaa00, 0.9);
+      this.gfx.beginPath();
+      const si = s * 0.5;
+      this.gfx.moveTo(c * si, sn * si);
+      this.gfx.lineTo(-sn * si, c * si);
+      this.gfx.lineTo(-c * si, -sn * si);
+      this.gfx.lineTo(sn * si, -c * si);
+      this.gfx.closePath();
+      this.gfx.fillPath();
+      this.gfx.fillStyle(0xffffff, 0.8);
+      this.gfx.fillRect(-1.5, -1.5, 3, 3);
+      // orbiting fragments for cluster-capable projectiles
+      if (this.explosiveCluster) {
+        for (let i = 0; i < 4; i++) {
+          const fa = spin * 1.5 + (i / 4) * Math.PI * 2;
+          const fd = 12 + Math.sin(this.age * 0.01 + i) * 2;
+          this.gfx.fillStyle(this.color, 0.6);
+          this.gfx.fillRect(
+            Math.cos(fa) * fd - 1.5,
+            Math.sin(fa) * fd - 1.5,
+            3, 3
+          );
+        }
+      }
+    } else if (this.isLaser) {
+      const spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      const dirX = spd > 0 ? this.vx / spd : 0;
+      const dirY = spd > 0 ? this.vy / spd : 1;
+      const len = 28 + this.radius * 2;
+      const perpX = -dirY;
+      const perpY = dirX;
+      const w = this.radius * 0.6;
+      this.gfx.fillStyle(this.color, 0.08);
+      this.gfx.fillRect(-perpX * w * 3 - dirX * len * 0.5, -perpY * w * 3 - dirY * len * 0.5, w * 6, len);
+      this.gfx.fillStyle(this.color, 0.55);
+      const hw = w * 1.2;
+      this.gfx.beginPath();
+      this.gfx.moveTo(-perpX * hw - dirX * len * 0.5, -perpY * hw - dirY * len * 0.5);
+      this.gfx.lineTo(perpX * hw - dirX * len * 0.5, perpY * hw - dirY * len * 0.5);
+      this.gfx.lineTo(perpX * hw + dirX * len * 0.5, perpY * hw + dirY * len * 0.5);
+      this.gfx.lineTo(-perpX * hw + dirX * len * 0.5, -perpY * hw + dirY * len * 0.5);
+      this.gfx.closePath();
+      this.gfx.fillPath();
+      this.gfx.fillStyle(0xffffff, 0.85);
+      const cw = w * 0.5;
+      this.gfx.beginPath();
+      this.gfx.moveTo(-perpX * cw - dirX * len * 0.4, -perpY * cw - dirY * len * 0.4);
+      this.gfx.lineTo(perpX * cw - dirX * len * 0.4, perpY * cw - dirY * len * 0.4);
+      this.gfx.lineTo(perpX * cw + dirX * len * 0.4, perpY * cw + dirY * len * 0.4);
+      this.gfx.lineTo(-perpX * cw + dirX * len * 0.4, -perpY * cw + dirY * len * 0.4);
+      this.gfx.closePath();
+      this.gfx.fillPath();
+    } else if (this.isNova) {
       const pulse = Math.sin(this.age * 0.015) * 2;
       this.gfx.fillStyle(this.color, 0.12);
       this.gfx.fillCircle(0, 0, 16 + pulse);

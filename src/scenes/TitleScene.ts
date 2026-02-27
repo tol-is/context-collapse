@@ -6,8 +6,7 @@ import DEV from "../devConfig";
 export default class TitleScene extends Phaser.Scene {
   private gfx!: Phaser.GameObjects.Graphics;
   private menuItems: Phaser.GameObjects.Text[] = [];
-  private menuLabels = ["ENTER THE BUFFER", "THREAT CODEX"];
-  private menuActions = ["ClassSelectScene", "CodexScene"];
+  private menuLabels = ["ENTER THE BUFFER", "EVAL MODE", "THREAT CODEX"];
   private selectedIndex = 0;
   private cursorBlink = true;
   private blinkTimer = 0;
@@ -130,11 +129,14 @@ export default class TitleScene extends Phaser.Scene {
       this.menuItems[0].setAlpha(1);
       this.typeText(this.menuItems[0], firstStr, 6);
 
-      this.time.delayedCall(75, () => {
-        const secondStr = "  " + this.menuLabels[1];
-        this.menuItems[1].setAlpha(1);
-        this.typeText(this.menuItems[1], secondStr, 4);
-      });
+      for (let mi = 1; mi < this.menuLabels.length; mi++) {
+        const idx = mi;
+        this.time.delayedCall(75 * mi, () => {
+          const str = "  " + this.menuLabels[idx];
+          this.menuItems[idx].setAlpha(1);
+          this.typeText(this.menuItems[idx], str, 4);
+        });
+      }
 
       const totalDelay = 6 * firstStr.length + 25;
       this.time.delayedCall(totalDelay, () => {
@@ -178,7 +180,21 @@ export default class TitleScene extends Phaser.Scene {
       if (!this.menuReady) return;
       audio.init();
       audio.play("gameStart");
-      this.scene.start(this.menuActions[this.selectedIndex]);
+      switch (this.selectedIndex) {
+        case 0:
+          this.scene.start("ClassSelectScene", {
+            targetScene: "GameScene",
+          });
+          break;
+        case 1:
+          this.scene.start("ClassSelectScene", {
+            targetScene: "EvalModeScene",
+          });
+          break;
+        case 2:
+          this.scene.start("CodexScene");
+          break;
+      }
     });
     this.input.keyboard!.on("keydown-M", () => audio.toggleMute());
     addCreditLink(this);

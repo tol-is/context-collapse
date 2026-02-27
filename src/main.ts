@@ -6,6 +6,7 @@ import GameScene from "./scenes/GameScene";
 import GameOverScene from "./scenes/GameOverScene";
 import VictoryScene from "./scenes/VictoryScene";
 import CodexScene from "./scenes/CodexScene";
+import EvalModeScene from "./scenes/EvalModeScene";
 import DEV from "./devConfig";
 
 const scenes = [
@@ -15,6 +16,7 @@ const scenes = [
   GameOverScene,
   VictoryScene,
   CodexScene,
+  EvalModeScene,
 ];
 
 if (DEV.enabled && DEV.startScene) {
