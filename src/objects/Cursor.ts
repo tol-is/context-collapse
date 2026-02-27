@@ -13,6 +13,8 @@ export type WeaponMod =
   | "rapid"
   | "homing"
   | "chain"
+  | "nova"
+  | "vortex"
   | null;
 
 interface ClassStats {
@@ -90,6 +92,8 @@ export const WEAPON_MOD_COLORS: Record<string, number> = {
   rapid: 0xff0080,
   homing: 0x7700ff,
   chain: 0x44ffff,
+  nova: 0xff6600,
+  vortex: 0xaa44ff,
 };
 
 export const WEAPON_MOD_NAMES: Record<string, string> = {
@@ -98,6 +102,8 @@ export const WEAPON_MOD_NAMES: Record<string, string> = {
   rapid: "RAPID FIRE",
   homing: "HOMING SHOTS",
   chain: "CHAIN LIGHTNING",
+  nova: "NOVA BURST",
+  vortex: "VORTEX STORM",
 };
 
 export default class Cursor extends Phaser.GameObjects.Container {
@@ -216,15 +222,17 @@ export default class Cursor extends Phaser.GameObjects.Container {
 
     const mod = this.weaponMod;
     const tier = this.weaponTier;
-    const tierDmg = 1 + (tier - 1) * 0.15;
+    const tierDmg = 1 + (tier - 1) * 0.22;
     const rate =
       mod === "rapid"
-        ? this.fireRate * Math.max(0.3, 0.55 - tier * 0.05)
-        : this.fireRate;
+        ? this.fireRate * Math.max(0.15, 0.35 - tier * 0.04)
+        : mod === "vortex"
+          ? this.fireRate * 1.6
+          : this.fireRate;
     this.fireCooldown = rate;
 
     const angle = Math.atan2(this.aimY - this.y, this.aimX - this.x);
-    const speed = 540 + tier * 20;
+    const speed = 560 + tier * 30;
     const baseDmg =
       this.specialActive && this.systemPrompt === "jailbreak"
         ? this.damage * 3
@@ -249,12 +257,12 @@ export default class Cursor extends Phaser.GameObjects.Container {
         lifetime,
         true
       );
-      p.chainBounces = 2 + Math.floor(tier / 2);
-      p.chainRange = 100 + tier * 20;
+      p.chainBounces = 4 + tier;
+      p.chainRange = 140 + tier * 25;
       p.homing = true;
       p.homingTargets = enemies ?? [];
       projectiles.push(p);
-      if (tier >= 4) {
+      if (tier >= 3) {
         const p2 = new Projectile(
           this.scene,
           this.x,
@@ -266,14 +274,92 @@ export default class Cursor extends Phaser.GameObjects.Container {
           lifetime,
           true
         );
-        p2.chainBounces = 1 + Math.floor(tier / 3);
-        p2.chainRange = 80;
+        p2.chainBounces = 2 + Math.floor(tier / 2);
+        p2.chainRange = 100 + tier * 15;
         p2.homing = true;
         p2.homingTargets = enemies ?? [];
         projectiles.push(p2);
       }
+      if (tier >= 5) {
+        const p3 = new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          Math.cos(angle - 0.15) * speed,
+          Math.sin(angle - 0.15) * speed,
+          finalDmg * 0.5,
+          color,
+          lifetime,
+          true
+        );
+        p3.chainBounces = 3;
+        p3.chainRange = 100;
+        p3.homing = true;
+        p3.homingTargets = enemies ?? [];
+        projectiles.push(p3);
+      }
+    } else if (mod === "nova") {
+      const vx = Math.cos(angle) * speed * 0.85;
+      const vy = Math.sin(angle) * speed * 0.85;
+      const p = new Projectile(
+        this.scene,
+        this.x,
+        this.y,
+        vx,
+        vy,
+        finalDmg * (1.3 + tier * 0.2),
+        color,
+        lifetime * 1.1,
+        true
+      );
+      p.isNova = true;
+      p.novaRadius = 55 + tier * 18;
+      p.novaDamage = finalDmg * (0.5 + tier * 0.12);
+      p.homing = true;
+      p.homingTargets = enemies ?? [];
+      p.homingStrength = 1.8;
+      p.radius = 8;
+      projectiles.push(p);
+      if (tier >= 3) {
+        const p2 = new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          Math.cos(angle + 0.3) * speed * 0.75,
+          Math.sin(angle + 0.3) * speed * 0.75,
+          finalDmg * 0.6,
+          color,
+          lifetime * 0.9,
+          true
+        );
+        p2.isNova = true;
+        p2.novaRadius = 35 + tier * 10;
+        p2.novaDamage = finalDmg * (0.3 + tier * 0.06);
+        p2.radius = 6;
+        projectiles.push(p2);
+      }
+    } else if (mod === "vortex") {
+      const count = 10 + tier * 3;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const vx = Math.cos(a) * speed * 0.85;
+        const vy = Math.sin(a) * speed * 0.85;
+        const p = new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          vx,
+          vy,
+          finalDmg * (0.45 + tier * 0.07),
+          color,
+          lifetime * 0.6,
+          true
+        );
+        if (tier >= 3) p.piercing = true;
+        projectiles.push(p);
+      }
     } else if (this.systemPrompt === "hallucinate" || mod === "spread") {
-      const count = mod === "spread" ? 3 + Math.floor(tier / 2) : 3;
+      const count = mod === "spread" ? 5 + tier : 3;
       const finalCount =
         this.systemPrompt === "hallucinate" && mod === "spread"
           ? count + 2
@@ -298,7 +384,7 @@ export default class Cursor extends Phaser.GameObjects.Container {
         projectiles.push(p);
       }
     } else if (mod === "homing") {
-      const count = 1 + Math.floor(tier / 3);
+      const count = 2 + Math.floor(tier / 2);
       for (let i = 0; i < count; i++) {
         const spreadA = (i - (count - 1) / 2) * 0.2;
         const vx = Math.cos(angle + spreadA) * speed;
@@ -337,7 +423,7 @@ export default class Cursor extends Phaser.GameObjects.Container {
       p.piercingScale = 1 + tier * 0.08;
       projectiles.push(p);
     } else if (this.systemPrompt === "jailbreak" && !mod) {
-      const burstCount = 2 + Math.floor(tier / 2);
+      const burstCount = 4 + tier;
       for (let b = 0; b < burstCount; b++) {
         const spread = 0.3 + b * 0.05;
         const vx =

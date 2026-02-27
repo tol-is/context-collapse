@@ -46,13 +46,13 @@ const ZONE_ENEMIES: EnemyType[][] = [
 ];
 
 const ZONE_WEAPON_POOL: WeaponMod[][] = [
-  ["spread", "rapid"],
-  ["spread", "rapid", "piercing"],
-  ["spread", "rapid", "piercing", "homing"],
-  ["spread", "rapid", "piercing", "homing", "chain"],
-  ["piercing", "homing", "chain", "spread", "rapid"],
-  ["homing", "chain", "spread", "piercing", "rapid"],
-  ["spread", "piercing", "rapid", "homing", "chain"],
+  ["spread", "rapid", "nova"],
+  ["spread", "rapid", "piercing", "nova"],
+  ["spread", "rapid", "piercing", "homing", "nova"],
+  ["spread", "rapid", "piercing", "homing", "chain", "nova", "vortex"],
+  ["piercing", "homing", "chain", "spread", "rapid", "nova", "vortex"],
+  ["homing", "chain", "spread", "piercing", "rapid", "nova", "vortex"],
+  ["spread", "piercing", "rapid", "homing", "chain", "nova", "vortex"],
 ];
 
 type GameState =
@@ -300,9 +300,9 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.weaponTier = Math.min(5, Math.floor(this.layer / 4) + 1);
+    this.weaponTier = Math.min(5, Math.floor(this.layer / 3) + 1);
     this.player.weaponTier = this.weaponTier;
-    const baseCount = 6 + this.layer * 2 + this.zone * 3;
+    const baseCount = 14 + this.layer * 5 + this.zone * 8;
     this.layerEnemiesTotal = baseCount;
     this.buildSpawnQueue(baseCount);
     this.gameState = "playing";
@@ -313,10 +313,10 @@ export default class GameScene extends Phaser.Scene {
       ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
     this.spawnQueue = [];
 
-    const baseInterval = Math.max(400, 1800 - this.layer * 35);
-    const jitter = baseInterval * 0.4;
+    const baseInterval = Math.max(150, 750 - this.layer * 22);
+    const jitter = baseInterval * 0.5;
 
-    let accum = 600;
+    let accum = 200;
     for (let i = 0; i < total; i++) {
       const type = types[Math.floor(Math.random() * types.length)];
       this.spawnQueue.push({ type, delay: accum });
@@ -400,7 +400,7 @@ export default class GameScene extends Phaser.Scene {
       5: "NEW ENEMY: bias, lunging predator",
       7: "NEW ENEMY: botnet, splits on death",
       8: "NEW WEAPON: homing shots unlocked",
-      10: "NEW ENEMY: deepfake, shapeshifter",
+      10: "NEW ENEMY: deepfake + NEW WEAPON: vortex storm",
       11: "NEW ENEMY: phishing, ranged threat",
       13: "NEW WEAPON: chain lightning unlocked",
       14: "NEW ENEMY: scraper, marching box",
@@ -752,7 +752,7 @@ export default class GameScene extends Phaser.Scene {
     if (!this.boss || !this.boss.scene) return;
     this.boss.update(delta, this.player.x, this.player.y, this.projectiles);
 
-    if (this.boss.wantsSpawn && this.enemies.length < 16) {
+    if (this.boss.wantsSpawn && this.enemies.length < 30) {
       const types =
         ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
       const type = types[Math.floor(Math.random() * types.length)];
@@ -812,7 +812,7 @@ export default class GameScene extends Phaser.Scene {
           this.player.tokens++;
           audio.play("tokenCollect");
         } else if (p.type === "health") {
-          this.player.heal(15 + this.zone * 5);
+          this.player.heal(20 + this.zone * 8);
         } else if (p.type === "weapon" && p.weaponMod) {
           const dur = 12000 + (p.tier ?? 1) * 3000;
           this.player.setWeaponMod(p.weaponMod, dur);
@@ -877,16 +877,19 @@ export default class GameScene extends Phaser.Scene {
     this.totalKills++;
     this.layerEnemiesKilled++;
     this.combo++;
-    this.comboTimer = 2500;
+    this.comboTimer = 3500;
 
-    if (this.combo >= 10) {
+    if (this.combo >= 20) {
+      this.contextLevel = Math.max(0, this.contextLevel - 15);
+      this.player.heal(10);
+    } else if (this.combo >= 10) {
       this.contextLevel = Math.max(0, this.contextLevel - 8);
       this.player.heal(5);
     } else if (this.combo >= 5) {
       this.contextLevel = Math.max(0, this.contextLevel - 4);
     }
 
-    this.contextLevel = Math.max(0, this.contextLevel - 2.5);
+    this.contextLevel = Math.max(0, this.contextLevel - 3.0);
   }
 
   // ===== Collisions =====
@@ -930,13 +933,19 @@ export default class GameScene extends Phaser.Scene {
             enemy.health / enemy.maxHealth < 0.4
           )
             dmg *= 1.25;
-          const comboDmg = this.combo >= 10 ? 1.3 : this.combo >= 5 ? 1.15 : 1;
+          const comboDmg = this.combo >= 20 ? 2.0 : this.combo >= 10 ? 1.5 : this.combo >= 5 ? 1.25 : 1;
           dmg *= comboDmg;
           const killed = enemy.takeDamage(dmg);
           if (killed) {
             this.registerKill();
             this.spawnPickup(enemy.x, enemy.y, enemy.dropWeapon);
             this.handleDeathEffects(enemy);
+          }
+          if (proj.isNova) {
+            this.spawnNovaExplosion(enemy.x, enemy.y, proj.novaDamage, proj.novaRadius, proj.color);
+            proj.destroy();
+            this.projectiles.splice(pi, 1);
+            break;
           }
           if (proj.chainBounces > 0 && killed) {
             const chainTarget = this.enemies.find(
@@ -1005,7 +1014,7 @@ export default class GameScene extends Phaser.Scene {
         age: 0,
         collected: false,
       });
-    if (Math.random() < 0.12 + (this.combo >= 10 ? 0.08 : 0))
+    if (Math.random() < 0.24 + (this.combo >= 10 ? 0.1 : 0))
       this.pickups.push({
         x: x + (Math.random() - 0.5) * 14,
         y: y + (Math.random() - 0.5) * 14,
@@ -1035,6 +1044,37 @@ export default class GameScene extends Phaser.Scene {
     }
     if (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 60)
       this.player.takeDamage(12);
+  }
+
+  private spawnNovaExplosion(x: number, y: number, damage: number, radius: number, color: number) {
+    const gfx = this.add.graphics().setDepth(9500);
+    let r = 8;
+    const timer = this.time.addEvent({
+      delay: 16,
+      repeat: 20,
+      callback: () => {
+        r += (radius - 8) / 15;
+        gfx.clear();
+        const p = timer.getProgress();
+        gfx.lineStyle(3 * (1 - p), color, (1 - p) * 0.9);
+        gfx.strokeCircle(x, y, r);
+        gfx.fillStyle(color, (1 - p) * 0.1);
+        gfx.fillCircle(x, y, r);
+        gfx.fillStyle(0xffffff, (1 - p) * 0.25);
+        gfx.fillCircle(x, y, r * 0.25);
+      },
+    });
+    this.time.delayedCall(380, () => gfx.destroy());
+    for (const e of this.enemies) {
+      if (!e.isDead && Phaser.Math.Distance.Between(x, y, e.x, e.y) < radius) {
+        const killed = e.takeDamage(damage);
+        if (killed) {
+          this.registerKill();
+          this.spawnPickup(e.x, e.y, e.dropWeapon);
+          this.handleDeathEffects(e);
+        }
+      }
+    }
   }
 
   private handleDeathEffects(enemy: Enemy) {
@@ -1281,13 +1321,13 @@ export default class GameScene extends Phaser.Scene {
     if (this.combo < 3) return;
     const w = this.scale.width;
     const c =
-      this.combo >= 10 ? 0xff0080 : this.combo >= 5 ? 0x00ffee : 0x451bff;
-    const barW = Math.min(120, this.combo * 8);
+      this.combo >= 20 ? 0xffffff : this.combo >= 10 ? 0xff0080 : this.combo >= 5 ? 0x00ffee : 0x451bff;
+    const barW = Math.min(180, this.combo * 6);
     const barX = w / 2 - barW / 2;
     this.comboGfx.fillStyle(c, 0.3);
     this.comboGfx.fillRect(barX, 30, barW, 3);
     this.comboGfx.fillStyle(c, 0.7);
-    const timerPct = this.comboTimer / 2500;
+    const timerPct = this.comboTimer / 3500;
     this.comboGfx.fillRect(barX, 30, barW * timerPct, 3);
   }
 

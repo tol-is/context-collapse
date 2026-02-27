@@ -128,9 +128,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     colorAccent: 0xffaa33,
   },
   captcha: {
-    health: 55,
+    health: 45,
     speed: 38,
-    damage: 16,
+    damage: 13,
     chaseRange: 240,
     attackRange: 30,
     attackCooldown: 1600,
@@ -258,7 +258,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
     this.attackRange = this.cfg.attackRange;
     this.radius = this.cfg.radius;
 
-    this.dropWeapon = Math.random() < 0.18;
+    this.dropWeapon = Math.random() < 0.22;
 
     this.patrolAngle = Math.random() * Math.PI * 2;
     this.patrolOriginX = x;
@@ -543,7 +543,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
         break;
       case "captcha": {
         const targetAngle = Math.atan2(py - this.y, px - this.x);
-        const turnSpeed = 1.8 * dt;
+        const turnSpeed = 1.3 * dt;
         let angleDiff = targetAngle - this.captchaShieldAngle;
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;

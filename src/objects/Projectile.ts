@@ -16,9 +16,12 @@ export default class Projectile extends Phaser.GameObjects.Container {
   public hitIds = new Set<number>();
   public chainBounces = 0;
   public chainRange = 120;
+  public isNova = false;
+  public novaRadius = 60;
+  public novaDamage = 0;
 
   private gfx: Phaser.GameObjects.Graphics;
-  private color: number;
+  public color: number;
   private trail: { x: number; y: number }[] = [];
 
   constructor(
@@ -99,7 +102,19 @@ export default class Projectile extends Phaser.GameObjects.Container {
       );
     }
 
-    if (isChain) {
+    if (this.isNova) {
+      const pulse = Math.sin(this.age * 0.015) * 2;
+      this.gfx.fillStyle(this.color, 0.12);
+      this.gfx.fillCircle(0, 0, 16 + pulse);
+      this.gfx.fillStyle(this.color, 0.6);
+      this.gfx.fillCircle(0, 0, 8);
+      this.gfx.fillStyle(0xffffff, 0.95);
+      this.gfx.fillCircle(0, 0, 3.5);
+      this.gfx.lineStyle(1.5, this.color, 0.5);
+      this.gfx.strokeCircle(0, 0, 12 + pulse);
+      this.gfx.lineStyle(1, 0xffffff, 0.2);
+      this.gfx.strokeCircle(0, 0, 16 + pulse);
+    } else if (isChain) {
       this.gfx.fillStyle(this.color, 0.2);
       this.gfx.fillCircle(0, 0, 10);
       this.gfx.fillStyle(this.color, 0.7);
