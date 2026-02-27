@@ -178,13 +178,10 @@ export default class TitleScene extends Phaser.Scene {
       if (!this.menuReady) return;
       audio.init();
       audio.play("gameStart");
-      this.cameras.main.fadeOut(400, 24, 24, 27);
-      this.time.delayedCall(450, () =>
-        this.scene.start(this.menuActions[this.selectedIndex])
+      this.scene.start(this.menuActions[this.selectedIndex]
       );
     });
     this.input.keyboard!.on("keydown-M", () => audio.toggleMute());
-    this.cameras.main.fadeIn(500, 24, 24, 27);
     addCreditLink(this);
   }
 

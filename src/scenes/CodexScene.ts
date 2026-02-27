@@ -1095,7 +1095,6 @@ export default class CodexScene extends Phaser.Scene {
     this.input.keyboard!.on("keydown-M", () => audio.toggleMute());
 
     this.time.delayedCall(700, () => this.showCreature());
-    this.cameras.main.fadeIn(400, 24, 24, 27);
   }
 
   private navigate(dir: number) {
@@ -1116,8 +1115,7 @@ export default class CodexScene extends Phaser.Scene {
 
   private goBack() {
     audio.play("uiNavigate");
-    this.cameras.main.fadeOut(400, 24, 24, 27);
-    this.time.delayedCall(450, () => this.scene.start("TitleScene"));
+    this.scene.start("TitleScene");
   }
 
   private showCreature() {
@@ -1215,15 +1213,16 @@ export default class CodexScene extends Phaser.Scene {
     const previewY = 200;
 
     this.gfx.fillStyle(entry.color, 0.04);
-    this.gfx.fillCircle(previewX, previewY, 80);
+    this.gfx.fillCircle(previewX, previewY, 160);
     this.gfx.lineStyle(1, entry.color, 0.1);
     this.gfx.strokeCircle(
       previewX,
       previewY,
-      70 + Math.sin(this.breathPhase * 2) * 4
+      140 + Math.sin(this.breathPhase * 2) * 8
     );
 
     this.creatureGfx.setPosition(previewX, previewY);
+    this.creatureGfx.setScale(2);
     entry.draw(this.creatureGfx, this.breathPhase);
 
     let markerIdx = 0;

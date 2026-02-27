@@ -262,7 +262,6 @@ export default class GameScene extends Phaser.Scene {
       );
     }
 
-    this.cameras.main.fadeIn(400, 24, 24, 27);
     this.showMessage("LAYER 1", "entering the model...", 1800);
     this.time.delayedCall(800, () => this.beginLayer());
   }

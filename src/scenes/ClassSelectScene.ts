@@ -153,7 +153,6 @@ export default class ClassSelectScene extends Phaser.Scene {
     this.updateSelectionColors();
     this.typeOptionsInitial();
     this.time.delayedCall(800, () => this.typeDetails());
-    this.cameras.main.fadeIn(300, 24, 24, 27);
   }
 
   private typeOptionsInitial() {
@@ -185,18 +184,14 @@ export default class ClassSelectScene extends Phaser.Scene {
 
   private back() {
     audio.play("uiNavigate");
-    this.cameras.main.fadeOut(300, 24, 24, 27);
-    this.time.delayedCall(350, () => this.scene.start("TitleScene"));
+    this.scene.start("TitleScene");
   }
 
   private confirm() {
     audio.play("classSelect");
-    this.cameras.main.fadeOut(400, 24, 24, 27);
-    this.time.delayedCall(450, () =>
-      this.scene.start("GameScene", {
-        systemPrompt: CLASS_ORDER[this.selected],
-      })
-    );
+    this.scene.start("GameScene", {
+      systemPrompt: CLASS_ORDER[this.selected],
+    });
   }
 
   private updateSelectionColors() {
@@ -290,19 +285,19 @@ export default class ClassSelectScene extends Phaser.Scene {
     for (let y = 0; y < h; y += 3) this.gfx.fillRect(0, y, w, 1);
 
     const stats = CLASS_STATS[CLASS_ORDER[this.selected]];
-    const pvX = w - 100;
+    const pvX = w * 0.75;
     const pvY = 170;
-    const pvR = 38 + Math.sin(this.breathPhase * 2) * 3;
+    const pvR = 76 + Math.sin(this.breathPhase * 2) * 6;
 
     this.previewGfx.fillStyle(stats.color, 0.06);
-    this.previewGfx.fillCircle(pvX, pvY, pvR + 16);
+    this.previewGfx.fillCircle(pvX, pvY, pvR + 32);
     this.previewGfx.fillStyle(stats.color, 0.1);
-    this.previewGfx.fillCircle(pvX, pvY, pvR + 6);
+    this.previewGfx.fillCircle(pvX, pvY, pvR + 12);
 
     const blink = Math.sin(this.breathPhase * 4) > 0;
     if (blink) {
       this.previewGfx.fillStyle(stats.color, 1);
-      this.previewGfx.fillRect(pvX - 1, pvY - 24, 2, 48);
+      this.previewGfx.fillRect(pvX - 1, pvY - 48, 2, 96);
     }
     this.previewGfx.lineStyle(
       2,
@@ -311,18 +306,18 @@ export default class ClassSelectScene extends Phaser.Scene {
     );
     this.previewGfx.strokeCircle(pvX, pvY, pvR);
     this.previewGfx.lineStyle(1, stats.color, 0.12);
-    this.previewGfx.strokeCircle(pvX, pvY, pvR + 12);
+    this.previewGfx.strokeCircle(pvX, pvY, pvR + 24);
 
     for (let i = 0; i < 8; i++) {
       const angle = this.breathPhase * 0.7 + (i * Math.PI * 2) / 8;
-      const dist = pvR + 14 + Math.sin(this.breathPhase * 2 + i) * 5;
+      const dist = pvR + 28 + Math.sin(this.breathPhase * 2 + i) * 10;
       const px = pvX + Math.cos(angle) * dist;
       const py = pvY + Math.sin(angle) * dist;
       this.previewGfx.fillStyle(
         stats.color,
         0.3 + Math.sin(this.breathPhase * 3 + i) * 0.15
       );
-      this.previewGfx.fillCircle(px, py, 2);
+      this.previewGfx.fillCircle(px, py, 4);
     }
   }
 }

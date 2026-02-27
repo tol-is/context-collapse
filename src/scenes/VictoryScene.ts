@@ -102,11 +102,9 @@ export default class VictoryScene extends Phaser.Scene {
 
     this.input.keyboard!.on("keydown-ENTER", () => {
       audio.play("gameStart");
-      this.cameras.main.fadeOut(400, 24, 24, 27);
-      this.time.delayedCall(450, () => this.scene.start("TitleScene"));
+      this.scene.start("TitleScene");
     });
     this.input.keyboard!.on("keydown-M", () => audio.toggleMute());
-    this.cameras.main.fadeIn(600, 24, 24, 27);
     addCreditLink(this);
   }
 
