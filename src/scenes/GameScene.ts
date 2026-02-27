@@ -25,10 +25,10 @@ const BOSS_ORDER: BossType[] = [
 const ZONE_ENEMIES: EnemyType[][] = [
   ["loremIpsum", "watermark"],
   ["loremIpsum", "watermark", "clickbait", "botnet"],
-  ["watermark", "clickbait", "bias", "phishing"],
-  ["clickbait", "bias", "deepfake", "captcha"],
-  ["bias", "deepfake", "scraper", "hallucination"],
-  ["deepfake", "scraper", "overfit", "malware"],
+  ["watermark", "clickbait", "bias", "phishing", "ddos"],
+  ["clickbait", "bias", "deepfake", "captcha", "ransomware"],
+  ["bias", "deepfake", "scraper", "hallucination", "trojan", "ddos"],
+  ["deepfake", "scraper", "overfit", "malware", "ransomware", "zeroDay"],
   [
     "loremIpsum",
     "watermark",
@@ -42,17 +42,21 @@ const ZONE_ENEMIES: EnemyType[][] = [
     "captcha",
     "hallucination",
     "malware",
+    "ransomware",
+    "ddos",
+    "trojan",
+    "zeroDay",
   ],
 ];
 
 const ZONE_WEAPON_POOL: WeaponMod[][] = [
   ["spread", "rapid", "nova"],
   ["spread", "rapid", "piercing", "nova"],
-  ["spread", "rapid", "piercing", "homing", "nova"],
-  ["spread", "rapid", "piercing", "homing", "chain", "nova", "vortex"],
-  ["piercing", "homing", "chain", "spread", "rapid", "nova", "vortex"],
-  ["homing", "chain", "spread", "piercing", "rapid", "nova", "vortex"],
-  ["spread", "piercing", "rapid", "homing", "chain", "nova", "vortex"],
+  ["spread", "rapid", "piercing", "homing", "nova", "shockwave"],
+  ["spread", "rapid", "piercing", "homing", "chain", "nova", "vortex", "shockwave"],
+  ["piercing", "homing", "chain", "spread", "rapid", "nova", "vortex", "orbital", "shockwave"],
+  ["homing", "chain", "spread", "piercing", "rapid", "nova", "vortex", "orbital", "railgun", "shockwave"],
+  ["spread", "piercing", "rapid", "homing", "chain", "nova", "vortex", "orbital", "railgun", "shockwave"],
 ];
 
 type GameState =
@@ -398,16 +402,16 @@ export default class GameScene extends Phaser.Scene {
       2: "NEW ENEMY: clickbait, explosive kamikaze",
       4: "NEW WEAPON: piercing rounds unlocked",
       5: "NEW ENEMY: bias, lunging predator",
-      7: "NEW ENEMY: botnet, splits on death",
-      8: "NEW WEAPON: homing shots unlocked",
-      10: "NEW ENEMY: deepfake + NEW WEAPON: vortex storm",
+      7: "NEW ENEMY: botnet, splits on death + ddos swarm",
+      8: "NEW WEAPON: homing shots + shockwave unlocked",
+      10: "NEW ENEMY: deepfake + ransomware, the heavy lock",
       11: "NEW ENEMY: phishing, ranged threat",
-      13: "NEW WEAPON: chain lightning unlocked",
-      14: "NEW ENEMY: scraper, marching box",
+      13: "NEW WEAPON: chain lightning + orbital strike",
+      14: "NEW ENEMY: scraper + trojan, the deceiver",
       16: "NEW ENEMY: captcha, frontal shield",
-      17: "NEW ENEMY: overfit, fractal hunter",
+      17: "NEW ENEMY: overfit, fractal hunter + zeroDay assassin",
       19: "NEW ENEMY: hallucination, phase walker",
-      20: "WEAPON TIER 5, max power + NEW ENEMY: malware",
+      20: "MAX TIER + RAILGUN + all enemies unleashed",
     };
     return unlocks[this.layer] ?? null;
   }
@@ -691,8 +695,17 @@ export default class GameScene extends Phaser.Scene {
             this.player.x,
             this.player.y
           );
-          if (dist < e.radius + this.player.radius + 10)
+          if (dist < e.radius + this.player.radius + 10) {
             this.player.takeDamage(e.damage);
+            if (e.enemyType === "ransomware") {
+              const origSpeed = this.player.speed;
+              this.player.speed = origSpeed * 0.15;
+              this.showMessage("ENCRYPTED", "movement locked", 600);
+              this.time.delayedCall(800, () => {
+                this.player.speed = origSpeed;
+              });
+            }
+          }
         }
         if (e.enemyType === "clickbait") {
           e.takeDamage(e.maxHealth);
@@ -1087,6 +1100,21 @@ export default class GameScene extends Phaser.Scene {
           enemy.x + Math.cos(angle) * 20,
           enemy.y + Math.sin(angle) * 20,
           "botnet",
+          this.zone
+        );
+        mini.makeMini();
+        this.enemies.push(mini);
+      }
+    }
+    if (enemy.enemyType === "ddos" && !enemy.isMini && Math.random() < 0.4) {
+      const count = 2;
+      for (let s = 0; s < count; s++) {
+        const angle = Math.random() * Math.PI * 2;
+        const mini = new Enemy(
+          this,
+          enemy.x + Math.cos(angle) * 15,
+          enemy.y + Math.sin(angle) * 15,
+          "ddos",
           this.zone
         );
         mini.makeMini();

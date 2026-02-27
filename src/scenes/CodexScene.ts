@@ -122,7 +122,7 @@ const ENEMIES: CreatureEntry[] = [
     colorAccent: 0x00ffee,
     abilities: ["Disguise as ally", "Reveals at close range"],
     story:
-      "It wears a friendly face until you're too close to run. A perfect imitation of something trustworthy — until it isn't.",
+      "It wears a friendly face until you're too close to run. A perfect imitation of something trustworthy, until it isn't.",
     draw: (gfx, t) => {
       const morph = Math.sin(t * 0.8);
       const revealed = morph > 0;
@@ -198,16 +198,44 @@ const ENEMIES: CreatureEntry[] = [
     colorAccent: 0xff0099,
     abilities: ["Predicts movement", "Pattern lock"],
     story:
-      "It memorized the training data too well. It knows every pattern — except the ones that actually matter.",
+      "It memorized the training data too well. Layered echoes of every pattern it's seen, drifting in and out of sync. Confident, rigid, and always one step behind the present.",
     draw: (gfx, t) => {
-      const tilt = Math.sin(t * 1.5) * 0.5;
-      drawSierpinski(gfx, 0, -5, 28, 0, 0xff0066, 0xff0099, tilt);
+      const echoes = 4;
+      for (let e = echoes; e >= 0; e--) {
+        const delay = e * 0.35;
+        const phase = t * 1.5 - delay;
+        const drift = e * 2 * (1 + Math.sin(t + e) * 0.3);
+        const ox = Math.sin(phase * 2 + e * 0.8) * drift;
+        const oy = Math.cos(phase * 1.6 + e * 1.1) * drift;
+        const fade = 1 - e * 0.2;
+        const r = 12 - e * 0.5;
+        gfx.lineStyle(
+          1.5,
+          e === 0 ? 0xff0066 : 0xff0099,
+          fade * (e === 0 ? 0.85 : 0.35)
+        );
+        gfx.beginPath();
+        const verts = 5;
+        for (let i = 0; i <= verts; i++) {
+          const va = (i / verts) * Math.PI * 2 + phase;
+          const vr = r + Math.sin(va * 2 + t * 1.5) * 2;
+          if (i === 0)
+            gfx.moveTo(ox + Math.cos(va) * vr, oy + Math.sin(va) * vr);
+          else gfx.lineTo(ox + Math.cos(va) * vr, oy + Math.sin(va) * vr);
+        }
+        gfx.closePath();
+        gfx.strokePath();
+      }
+      gfx.fillStyle(0xff0066, 0.8);
+      gfx.fillCircle(0, 0, 5);
+      gfx.fillStyle(0xff0099, 0.6);
+      gfx.fillCircle(0, 0, 3);
       for (let i = 1; i <= 3; i++) {
-        const ox = Math.cos(t * 1.2 + i * 1.8) * 3;
-        const oy = Math.sin(t * 1.2 + i * 1.8) * 3;
-        const fade = 0.5 - i * 0.1;
+        const fade = 0.4 - i * 0.1;
         gfx.lineStyle(1, 0xff0099, fade);
-        gfx.strokeCircle(20 + i * 10 + ox, -5 + i * 3 + oy, 4);
+        gfx.strokeCircle(18 + i * 9, -3 + i * 2, 3.5);
+        gfx.fillStyle(0xff0099, fade * 0.5);
+        gfx.fillCircle(18 + i * 9, -3 + i * 2, 1.5);
       }
     },
   },
@@ -218,7 +246,7 @@ const ENEMIES: CreatureEntry[] = [
     colorAccent: 0x66ff33,
     abilities: ["Splits on death", "Swarm pressure"],
     story:
-      "One becomes many. A distributed threat that multiplies when cornered — kill it once and its children come running.",
+      "One becomes many. A distributed threat that multiplies when cornered. Kill it once and its children come running.",
     draw: (gfx, t) => {
       const pulse = Math.sin(t * 3) * 0.12;
       const s = 16 * (1 + pulse);
@@ -271,28 +299,38 @@ const ENEMIES: CreatureEntry[] = [
     colorAccent: 0xffaa33,
     abilities: ["Ranged lure shots", "Keeps distance"],
     story:
-      "It never gets close — it doesn't have to. A baited hook cast from safety, reeling you in one hit at a time.",
+      "A warm glow that promises something you want. It never gets close, it doesn't have to. The filaments reach further than you think.",
     draw: (gfx, t) => {
-      const bob = Math.sin(t * 2) * 3;
-      gfx.lineStyle(3, 0xff8800, 0.9);
-      gfx.lineBetween(0, -14 + bob, 0, 3 + bob);
-      gfx.lineBetween(0, 3 + bob, 3, 8 + bob);
-      gfx.lineBetween(3, 8 + bob, 8, 10 + bob);
-      gfx.lineBetween(8, 10 + bob, 10, 7 + bob);
-      gfx.lineStyle(2, 0xffaa33, 0.85);
-      gfx.lineBetween(10, 7 + bob, 8, 3 + bob);
-      const glow = 0.6 + Math.sin(t * 3) * 0.3;
-      gfx.fillStyle(0xffaa33, glow * 0.3);
-      gfx.fillCircle(0, -17 + bob, 9);
-      gfx.fillStyle(0xffaa33, glow);
-      gfx.fillCircle(0, -17 + bob, 4);
+      const pulse = 0.7 + Math.sin(t * 2.5) * 0.25;
+      gfx.fillStyle(0xffaa33, pulse * 0.12);
+      gfx.fillCircle(0, 0, 18);
+      gfx.fillStyle(0xff8800, pulse * 0.35);
+      gfx.fillCircle(0, 0, 10);
+      gfx.fillStyle(0xffaa33, pulse * 0.9);
+      gfx.fillCircle(0, 0, 5);
+      gfx.fillStyle(0xffffff, pulse * 0.6);
+      gfx.fillCircle(-1.5, -1.5, 2);
+      const filaments = 6;
+      for (let i = 0; i < filaments; i++) {
+        const base = (i / filaments) * Math.PI * 2 + t * 0.4;
+        const len = 10 + Math.sin(t * 2 + i * 1.3) * 6;
+        const sway = Math.sin(t * 1.5 + i * 2.1) * 0.3;
+        gfx.lineStyle(1, 0xffaa33, 0.35);
+        gfx.beginPath();
+        gfx.moveTo(Math.cos(base) * 6, Math.sin(base) * 6);
+        gfx.lineTo(
+          Math.cos(base + sway) * (6 + len),
+          Math.sin(base + sway) * (6 + len)
+        );
+        gfx.strokePath();
+      }
       if (Math.sin(t * 1.2) > 0.3) {
         const pa = t * 2;
-        const pd = 20 + Math.sin(t * 4) * 8;
-        gfx.fillStyle(0xff8800, 0.6);
-        gfx.fillCircle(Math.cos(pa) * pd, Math.sin(pa) * pd + bob, 3);
-        gfx.fillStyle(0xff8800, 0.3);
-        gfx.fillCircle(Math.cos(pa) * pd, Math.sin(pa) * pd + bob, 6);
+        const pd = 24 + Math.sin(t * 4) * 6;
+        gfx.fillStyle(0xff8800, 0.5);
+        gfx.fillCircle(Math.cos(pa) * pd, Math.sin(pa) * pd, 3);
+        gfx.fillStyle(0xff8800, 0.2);
+        gfx.fillCircle(Math.cos(pa) * pd, Math.sin(pa) * pd, 7);
       }
     },
   },
@@ -303,31 +341,58 @@ const ENEMIES: CreatureEntry[] = [
     colorAccent: 0xffff33,
     abilities: ["Frontal shield", "Must be flanked"],
     story:
-      "Prove you're not a bot. A verification barrier turned hostile — its shield faces forward, its weakness faces away.",
+      "A rotating verification ward. Its layered segments shield the core from direct assault, only an indirect approach gets through.",
     draw: (gfx, t) => {
-      const s = 18;
-      gfx.fillStyle(0xcccc00, 0.7);
-      gfx.fillRect(-s, -s, s * 2, s * 2);
-      gfx.lineStyle(1, 0xffff33, 0.35);
-      gfx.lineBetween(-s, 0, s, 0);
-      gfx.lineBetween(0, -s, 0, s);
-      gfx.lineStyle(2.5, 0xffff33, 0.8);
-      gfx.beginPath();
-      gfx.moveTo(-8, -1);
-      gfx.lineTo(-3, 6);
-      gfx.lineTo(9, -7);
-      gfx.strokePath();
-      const shieldR = s + 8;
+      const spin = t * 0.5;
+      gfx.lineStyle(1, 0xcccc00, 0.2);
+      gfx.strokeCircle(0, 0, 15);
+      gfx.lineStyle(1, 0xcccc00, 0.12);
+      gfx.strokeCircle(0, 0, 10);
+      const segments = 8;
+      for (let i = 0; i < segments; i++) {
+        const sa = (i / segments) * Math.PI * 2 + spin;
+        const gap = 0.15;
+        const inner = 8,
+          outer = 16;
+        gfx.fillStyle(0xcccc00, 0.3 + (i % 2) * 0.15);
+        gfx.beginPath();
+        gfx.moveTo(Math.cos(sa + gap) * inner, Math.sin(sa + gap) * inner);
+        gfx.lineTo(Math.cos(sa + gap) * outer, Math.sin(sa + gap) * outer);
+        gfx.lineTo(
+          Math.cos(sa + (Math.PI * 2) / segments - gap) * outer,
+          Math.sin(sa + (Math.PI * 2) / segments - gap) * outer
+        );
+        gfx.lineTo(
+          Math.cos(sa + (Math.PI * 2) / segments - gap) * inner,
+          Math.sin(sa + (Math.PI * 2) / segments - gap) * inner
+        );
+        gfx.closePath();
+        gfx.fillPath();
+      }
+      gfx.fillStyle(0xffff33, 0.7);
+      gfx.fillCircle(0, 0, 5);
+      gfx.fillStyle(0xcccc00, 0.45);
+      gfx.fillCircle(0, 0, 3);
+      const shieldR = 21;
       const shieldAngle = t * 0.6;
-      gfx.lineStyle(3.5, 0xffff33, 0.7);
+      gfx.lineStyle(3.5, 0xffff33, 0.75);
       gfx.beginPath();
-      for (let i = -10; i <= 10; i++) {
-        const frac = i / 10;
+      for (let i = -12; i <= 12; i++) {
+        const frac = i / 12;
         const a = shieldAngle + frac * (Math.PI / 3);
-        const px = Math.cos(a) * shieldR;
-        const py = Math.sin(a) * shieldR;
-        if (i === -10) gfx.moveTo(px, py);
-        else gfx.lineTo(px, py);
+        if (i === -12) gfx.moveTo(Math.cos(a) * shieldR, Math.sin(a) * shieldR);
+        else gfx.lineTo(Math.cos(a) * shieldR, Math.sin(a) * shieldR);
+      }
+      gfx.strokePath();
+      gfx.lineStyle(1.5, 0xffff33, 0.25);
+      gfx.beginPath();
+      for (let i = -12; i <= 12; i++) {
+        const frac = i / 12;
+        const a = shieldAngle + frac * (Math.PI / 3);
+        if (i === -12)
+          gfx.moveTo(Math.cos(a) * (shieldR + 4), Math.sin(a) * (shieldR + 4));
+        else
+          gfx.lineTo(Math.cos(a) * (shieldR + 4), Math.sin(a) * (shieldR + 4));
       }
       gfx.strokePath();
     },
@@ -339,7 +404,7 @@ const ENEMIES: CreatureEntry[] = [
     colorAccent: 0xee44ff,
     abilities: ["Phase shift", "Teleport on reappear"],
     story:
-      "A confident fabrication. It flickers between real and imagined — visible long enough to strike, gone before you can answer.",
+      "A confident fabrication. It flickers between real and imagined, visible long enough to strike, gone before you can answer.",
     draw: (gfx, t) => {
       const vis = Math.sin(t * 1.2) > -0.3;
       const alpha = vis ? 0.8 + Math.sin(t * 5) * 0.12 : 0.12;
@@ -377,7 +442,7 @@ const ENEMIES: CreatureEntry[] = [
     colorAccent: 0xcc3333,
     abilities: ["Corrupted ground trail", "Area denial"],
     story:
-      "It infects the ground it walks on. A spreading corruption that turns the arena against you — every step it takes is a step you can't.",
+      "It infects the ground it walks on. A spreading corruption that turns the arena against you, every step it takes is a step you can't.",
     draw: (gfx, t) => {
       const glitch = Math.sin(t * 4);
       for (let i = 0; i < 6; i++) {
@@ -397,6 +462,177 @@ const ENEMIES: CreatureEntry[] = [
         const fade = 1 - i * 0.18;
         gfx.fillStyle(0xff0000, 0.2 * fade);
         gfx.fillCircle(tx, ty, 8 * fade);
+      }
+    },
+  },
+  {
+    name: "RANSOMWARE",
+    type: "enemy",
+    color: 0xee3300,
+    colorAccent: 0xff6633,
+    abilities: ["Movement lock on hit", "Heavy damage tank"],
+    story:
+      "A dense knot of encrypted shards orbiting a dark core. When it strikes, the fragments lock rigid, and so do you.",
+    draw: (gfx, t) => {
+      const lock = Math.sin(t * 0.6) > 0.3 ? 0.9 : 0;
+      const drift = 1 - lock;
+      const shards = 7;
+      gfx.fillStyle(0xee3300, 0.15);
+      gfx.fillCircle(0, 0, 20);
+      for (let i = 0; i < shards; i++) {
+        const base = (i / shards) * Math.PI * 2;
+        const orbit = base + t * 0.8 * drift;
+        const dist = 8 + Math.sin(t * 2 + i * 1.7) * 4 * drift;
+        const ox = Math.cos(orbit) * dist;
+        const oy = Math.sin(orbit) * dist;
+        const rot = orbit + t * 1.2 * drift;
+        const sz = 7 + (i % 3);
+        gfx.fillStyle(i % 2 === 0 ? 0xee3300 : 0xff6633, 0.8);
+        gfx.beginPath();
+        gfx.moveTo(ox + Math.cos(rot) * sz, oy + Math.sin(rot) * sz);
+        gfx.lineTo(
+          ox + Math.cos(rot + 2.1) * sz * 0.7,
+          oy + Math.sin(rot + 2.1) * sz * 0.7
+        );
+        gfx.lineTo(
+          ox + Math.cos(rot + 4.2) * sz * 0.9,
+          oy + Math.sin(rot + 4.2) * sz * 0.9
+        );
+        gfx.closePath();
+        gfx.fillPath();
+      }
+      gfx.fillStyle(0x110000, 0.9);
+      gfx.fillCircle(0, 0, 5);
+      gfx.fillStyle(0xff6633, 0.6 + Math.sin(t * 4) * 0.2);
+      gfx.fillCircle(0, 0, 2.5);
+      if (lock > 0.5) {
+        gfx.lineStyle(1.5, 0xff6633, 0.6);
+        gfx.strokeCircle(0, 0, 17);
+        gfx.lineStyle(1, 0xff0000, 0.35);
+        gfx.strokeCircle(0, 0, 22);
+      }
+    },
+  },
+  {
+    name: "DDOS",
+    type: "enemy",
+    color: 0x00cc44,
+    colorAccent: 0x44ff88,
+    abilities: ["Swarm rush", "Splits on death", "Overwhelm by numbers"],
+    story:
+      "A flood of requests, each one meaningless alone. Together they drown everything. They come in waves that never stop.",
+    draw: (gfx, t) => {
+      for (let cluster = 0; cluster < 5; cluster++) {
+        const ca = (cluster / 5) * Math.PI * 2 + t * 0.5;
+        const cd = 14 + Math.sin(t * 3 + cluster) * 4;
+        const cx = Math.cos(ca) * cd;
+        const cy = Math.sin(ca) * cd;
+        const s = 5 + Math.sin(t * 5 + cluster * 2) * 1;
+        gfx.fillStyle(cluster % 2 === 0 ? 0x00cc44 : 0x44ff88, 0.75);
+        gfx.fillCircle(cx, cy, s);
+        gfx.fillStyle(0x44ff88, 0.6);
+        gfx.fillCircle(cx, cy, s * 0.4);
+      }
+      gfx.lineStyle(1, 0x44ff88, 0.3);
+      for (let i = 0; i < 3; i++) {
+        const la = t * 2 + (i / 3) * Math.PI * 2;
+        gfx.lineBetween(
+          Math.cos(la) * 6,
+          Math.sin(la) * 6,
+          Math.cos(la) * 20,
+          Math.sin(la) * 20
+        );
+      }
+    },
+  },
+  {
+    name: "TROJAN",
+    type: "enemy",
+    color: 0xcc8800,
+    colorAccent: 0xffaa00,
+    abilities: [
+      "Mimics health pickup",
+      "Ambush attack",
+      "Speed burst on reveal",
+    ],
+    story:
+      "It looks like a gift. A health cross, glowing and inviting. Get close and the disguise shatters, mandibles where mercy should be.",
+    draw: (gfx, t) => {
+      const revealed = Math.sin(t * 0.7) > 0;
+      if (!revealed) {
+        gfx.fillStyle(0x00ffee, 0.9);
+        gfx.fillRect(-3, -8, 6, 16);
+        gfx.fillRect(-8, -3, 16, 6);
+        gfx.fillStyle(0x00ffee, 0.15);
+        gfx.fillCircle(0, 0, 12);
+      } else {
+        const legs = 6;
+        gfx.fillStyle(0xcc8800, 0.9);
+        gfx.beginPath();
+        for (let i = 0; i < legs; i++) {
+          const ang = (i / legs) * Math.PI * 2 + t * 1.5;
+          const r = 13 + Math.sin(ang * 3 + t * 2.5) * 5;
+          if (i === 0) gfx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r);
+          else gfx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+        }
+        gfx.closePath();
+        gfx.fillPath();
+        gfx.fillStyle(0xffaa00, 0.85);
+        gfx.fillCircle(-4, -3, 3);
+        gfx.fillCircle(4, -3, 3);
+        gfx.lineStyle(1.5, 0xffaa00, 0.6);
+        for (let i = 0; i < 4; i++) {
+          const la = (i / 4) * Math.PI * 2 + t * 2;
+          gfx.lineBetween(
+            Math.cos(la) * 12,
+            Math.sin(la) * 12,
+            Math.cos(la) * 19,
+            Math.sin(la + 0.3) * 19
+          );
+        }
+      }
+    },
+  },
+  {
+    name: "ZERO DAY",
+    type: "enemy",
+    color: 0xff0044,
+    colorAccent: 0xff4477,
+    abilities: ["Invisibility", "Teleport strike", "Massive burst damage"],
+    story:
+      "An exploit no one knew existed. It appears from nowhere, strikes with devastating force, and vanishes before you can react.",
+    draw: (gfx, t) => {
+      const vis = Math.sin(t * 0.8) > 0;
+      const alpha = vis ? 0.9 : 0.08;
+      const gx = vis ? 0 : Math.sin(t * 31) * 8;
+      const gy = vis ? 0 : Math.cos(t * 47) * 8;
+      if (vis) {
+        gfx.lineStyle(1.5, 0xff4477, 0.6);
+        gfx.strokeCircle(0, 0, 18);
+      }
+      gfx.fillStyle(0xff0044, alpha);
+      gfx.beginPath();
+      gfx.moveTo(-10 + gx, -8 + gy);
+      gfx.lineTo(3 + gx, -13 + gy);
+      gfx.lineTo(12 + gx, -3 + gy);
+      gfx.lineTo(7 + gx, 10 + gy);
+      gfx.lineTo(-5 + gx, 12 + gy);
+      gfx.lineTo(-13 + gx, 3 + gy);
+      gfx.closePath();
+      gfx.fillPath();
+      if (vis) {
+        gfx.fillStyle(0xff4477, 0.95);
+        gfx.fillCircle(0, 0, 4);
+        gfx.lineStyle(2, 0xffffff, 0.7);
+        gfx.lineBetween(-4, -4, 4, 4);
+        gfx.lineBetween(4, -4, -4, 4);
+      } else {
+        gfx.lineStyle(1, 0xff4477, 0.12);
+        for (let i = 0; i < 3; i++) {
+          const rx = Math.sin(t * 17 + i * 5) * 16;
+          const ry = Math.cos(t * 23 + i * 7) * 16;
+          gfx.lineBetween(rx, ry, rx + Math.sin(t * 37 + i) * 10, ry);
+        }
       }
     },
   },
@@ -508,7 +744,7 @@ const BOSSES: CreatureEntry[] = [
     colorAccent: 0xff0033,
     abilities: ["Passive to aggressive shift", "Radial storms", "Spike growth"],
     story:
-      "It was designed to help. It still thinks it is. The spikes grew slowly — by the time anyone noticed, it was too late.",
+      "It was designed to help. It still thinks it is. The spikes grew slowly, by the time anyone noticed, it was too late.",
     draw: (gfx, t) => {
       const r = 30;
       const transition = (Math.sin(t * 0.5) + 1) / 2;
@@ -620,7 +856,7 @@ const BOSSES: CreatureEntry[] = [
     colorAccent: 0xcc77ff,
     abilities: ["Growing mass", "Ring barriers", "Radial projectile storms"],
     story:
-      "The final collapse. It grows with everything it absorbs, bending space around it. The rings are event horizons — find the gaps, or be consumed.",
+      "The final collapse. It grows with everything it absorbs, bending space around it. The rings are event horizons, find the gaps, or be consumed.",
     draw: (gfx, t) => {
       const size = 18 + Math.sin(t * 0.5) * 4;
       gfx.fillStyle(0xcc77ff, 0.15);
@@ -695,34 +931,6 @@ function strokeHex(
   }
   gfx.closePath();
   gfx.strokePath();
-}
-
-function drawSierpinski(
-  gfx: Phaser.GameObjects.Graphics,
-  cx: number,
-  cy: number,
-  size: number,
-  depth: number,
-  c: number,
-  a: number,
-  tilt: number
-) {
-  if (depth > 2 || size < 4) {
-    gfx.fillStyle(depth === 0 ? c : a, 0.8 + depth * 0.08);
-    const h = size * 0.866;
-    gfx.beginPath();
-    gfx.moveTo(cx + tilt * 14, cy - h * 0.67);
-    gfx.lineTo(cx + size / 2, cy + h * 0.33);
-    gfx.lineTo(cx - size / 2, cy + h * 0.33);
-    gfx.closePath();
-    gfx.fillPath();
-    return;
-  }
-  const h = size * 0.866;
-  const half = size / 2;
-  drawSierpinski(gfx, cx, cy - h * 0.33, half, depth + 1, c, a, tilt);
-  drawSierpinski(gfx, cx - half / 2, cy + h * 0.17, half, depth + 1, c, a, 0);
-  drawSierpinski(gfx, cx + half / 2, cy + h * 0.17, half, depth + 1, c, a, 0);
 }
 
 const ALL_CREATURES = [...ENEMIES, ...BOSSES];

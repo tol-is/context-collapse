@@ -15,6 +15,9 @@ export type WeaponMod =
   | "chain"
   | "nova"
   | "vortex"
+  | "orbital"
+  | "railgun"
+  | "shockwave"
   | null;
 
 interface ClassStats {
@@ -94,6 +97,9 @@ export const WEAPON_MOD_COLORS: Record<string, number> = {
   chain: 0x44ffff,
   nova: 0xff6600,
   vortex: 0xaa44ff,
+  orbital: 0xff2200,
+  railgun: 0x00eeff,
+  shockwave: 0xffcc00,
 };
 
 export const WEAPON_MOD_NAMES: Record<string, string> = {
@@ -104,6 +110,9 @@ export const WEAPON_MOD_NAMES: Record<string, string> = {
   chain: "CHAIN LIGHTNING",
   nova: "NOVA BURST",
   vortex: "VORTEX STORM",
+  orbital: "ORBITAL STRIKE",
+  railgun: "RAILGUN",
+  shockwave: "SHOCKWAVE",
 };
 
 export default class Cursor extends Phaser.GameObjects.Container {
@@ -358,6 +367,76 @@ export default class Cursor extends Phaser.GameObjects.Container {
         if (tier >= 3) p.piercing = true;
         projectiles.push(p);
       }
+    } else if (mod === "orbital") {
+      const orbCount = 3 + Math.floor(tier / 2);
+      for (let i = 0; i < orbCount; i++) {
+        const delay = i * 120;
+        const targetAngle = angle + (Math.random() - 0.5) * 0.8;
+        const dist = 80 + Math.random() * 60;
+        const ox = this.x + Math.cos(targetAngle) * dist;
+        const oy = this.y + Math.sin(targetAngle) * dist;
+        this.scene.time.delayedCall(delay, () => {
+          if (!this.scene) return;
+          const p = new Projectile(
+            this.scene,
+            ox,
+            oy - 120,
+            0,
+            speed * 1.2,
+            finalDmg * (1.8 + tier * 0.3),
+            color,
+            800,
+            true
+          );
+          p.isNova = true;
+          p.novaRadius = 45 + tier * 12;
+          p.novaDamage = finalDmg * (0.8 + tier * 0.15);
+          p.radius = 10;
+          projectiles.push(p);
+        });
+      }
+      this.fireCooldown = this.fireRate * 2.5;
+    } else if (mod === "railgun") {
+      const vx = Math.cos(angle) * speed * 2.0;
+      const vy = Math.sin(angle) * speed * 2.0;
+      const p = new Projectile(
+        this.scene,
+        this.x,
+        this.y,
+        vx,
+        vy,
+        finalDmg * (3.5 + tier * 0.5),
+        color,
+        lifetime * 1.5,
+        true
+      );
+      p.piercing = true;
+      p.piercingScale = 2.0 + tier * 0.3;
+      p.radius = 10;
+      projectiles.push(p);
+      this.fireCooldown = this.fireRate * 3.2;
+    } else if (mod === "shockwave") {
+      const count = 16 + tier * 4;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const vx = Math.cos(a) * speed * 0.6;
+        const vy = Math.sin(a) * speed * 0.6;
+        const p = new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          vx,
+          vy,
+          finalDmg * (0.8 + tier * 0.1),
+          color,
+          lifetime * 0.35,
+          true
+        );
+        p.radius = 7;
+        if (tier >= 3) p.piercing = true;
+        projectiles.push(p);
+      }
+      this.fireCooldown = this.fireRate * 2.0;
     } else if (this.systemPrompt === "hallucinate" || mod === "spread") {
       const count = mod === "spread" ? 5 + tier : 3;
       const finalCount =

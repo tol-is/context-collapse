@@ -48,8 +48,7 @@ export default class ClassSelectScene extends Phaser.Scene {
     this.blinkTimer = 0;
     this.detailTimers = [];
 
-    const w = this.scale.width,
-      h = this.scale.height;
+    const w = this.scale.width;
     const mono = { fontFamily: '"Share Tech Mono", monospace' };
     const cx = 40;
 

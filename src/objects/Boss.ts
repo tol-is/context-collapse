@@ -41,8 +41,8 @@ const BOSS_INDEX: Record<BossType, number> = {
   singularity: 6,
 };
 
-const BASE_HP = [350, 900, 1200, 1500, 1900, 2400, 3800];
-const SPEED_MULT = [0.85, 1.0, 1.15, 1.3, 1.4, 1.55, 1.7];
+const BASE_HP = [450, 1200, 1600, 2100, 2600, 3200, 5000];
+const SPEED_MULT = [0.9, 1.1, 1.25, 1.4, 1.5, 1.65, 1.85];
 
 interface HexCell {
   localX: number;
@@ -448,32 +448,61 @@ export default class Boss extends Phaser.GameObjects.Container {
     const hpPct = this.health / this.maxHealth;
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(450, 1300 - (1 - hpPct) * 600);
+      this.shootTimer = Math.max(350, 1100 - (1 - hpPct) * 700);
       const a = Math.atan2(py - this.y, px - this.x);
       projectiles.push(
         new Projectile(
           this.scene,
           this.x,
           this.y,
-          Math.cos(a) * 200,
-          Math.sin(a) * 200,
-          10,
+          Math.cos(a) * 220,
+          Math.sin(a) * 220,
+          12,
           0x8844ff,
-          2000,
+          2200,
           false
         )
       );
-      if (hpPct < 0.65) {
-        const spread = 0.25;
+      if (hpPct < 0.75) {
+        const spread = 0.22;
         projectiles.push(
           new Projectile(
             this.scene,
             this.x,
             this.y,
-            Math.cos(a + spread) * 180,
-            Math.sin(a + spread) * 180,
-            8,
+            Math.cos(a + spread) * 200,
+            Math.sin(a + spread) * 200,
+            10,
             0x5500cc,
+            2000,
+            false
+          )
+        );
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a - spread) * 200,
+            Math.sin(a - spread) * 200,
+            10,
+            0x5500cc,
+            2000,
+            false
+          )
+        );
+      }
+      if (hpPct < 0.45) {
+        const wide = 0.45;
+        projectiles.push(
+          new Projectile(
+            this.scene,
+            this.x,
+            this.y,
+            Math.cos(a + wide) * 180,
+            Math.sin(a + wide) * 180,
+            9,
+            0x4400aa,
             1800,
             false
           )
@@ -483,43 +512,32 @@ export default class Boss extends Phaser.GameObjects.Container {
             this.scene,
             this.x,
             this.y,
-            Math.cos(a - spread) * 180,
-            Math.sin(a - spread) * 180,
-            8,
-            0x5500cc,
+            Math.cos(a - wide) * 180,
+            Math.sin(a - wide) * 180,
+            9,
+            0x4400aa,
             1800,
             false
           )
         );
       }
-      if (hpPct < 0.3) {
-        const wide = 0.5;
-        projectiles.push(
-          new Projectile(
-            this.scene,
-            this.x,
-            this.y,
-            Math.cos(a + wide) * 160,
-            Math.sin(a + wide) * 160,
-            7,
-            0x4400aa,
-            1600,
-            false
-          )
-        );
-        projectiles.push(
-          new Projectile(
-            this.scene,
-            this.x,
-            this.y,
-            Math.cos(a - wide) * 160,
-            Math.sin(a - wide) * 160,
-            7,
-            0x4400aa,
-            1600,
-            false
-          )
-        );
+      if (hpPct < 0.2) {
+        for (let i = 0; i < 8; i++) {
+          const sa = (i / 8) * Math.PI * 2;
+          projectiles.push(
+            new Projectile(
+              this.scene,
+              this.x,
+              this.y,
+              Math.cos(sa) * 140,
+              Math.sin(sa) * 140,
+              7,
+              0x3300aa,
+              1600,
+              false
+            )
+          );
+        }
       }
     }
     this.tendrilTimer -= delta;
@@ -635,20 +653,21 @@ export default class Boss extends Phaser.GameObjects.Container {
         this.apSpikes[i] = 0.6 + Math.sin(this.breathPhase * 3.5 + i) * 0.4;
       this.shootTimer -= delta;
       if (this.shootTimer <= 0) {
-        this.shootTimer = 1000;
-        const count = 10 + Math.floor((1 - this.health / this.maxHealth) * 10);
+        this.shootTimer = 850;
+        const count = 14 + Math.floor((1 - this.health / this.maxHealth) * 14);
         for (let i = 0; i < count; i++) {
           const sa = (i / count) * Math.PI * 2 + this.breathPhase;
+          const spd = 180 + (1 - this.health / this.maxHealth) * 40;
           projectiles.push(
             new Projectile(
               this.scene,
               this.x,
               this.y,
-              Math.cos(sa) * 165,
-              Math.sin(sa) * 165,
-              12,
+              Math.cos(sa) * spd,
+              Math.sin(sa) * spd,
+              14,
               0xff0033,
-              2000,
+              2200,
               false
             )
           );
@@ -738,7 +757,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     if (this.piGlitchActive) {
       this.shootTimer -= delta;
       if (this.shootTimer <= 0) {
-        this.shootTimer = 280;
+        this.shootTimer = Math.max(150, 250 - this.phase * 30);
         const a =
           Math.atan2(py - this.y, px - this.x) + (Math.random() - 0.5) * 0.8;
         projectiles.push(
@@ -746,14 +765,29 @@ export default class Boss extends Phaser.GameObjects.Container {
             this.scene,
             this.x,
             this.y,
-            Math.cos(a) * 210,
-            Math.sin(a) * 210,
-            6,
+            Math.cos(a) * 230,
+            Math.sin(a) * 230,
+            8,
             0xff0066,
-            1800,
+            2000,
             false
           )
         );
+        if (this.phase >= 3) {
+          projectiles.push(
+            new Projectile(
+              this.scene,
+              this.x,
+              this.y,
+              Math.cos(a + 0.4) * 200,
+              Math.sin(a + 0.4) * 200,
+              6,
+              0xff0066,
+              1800,
+              false
+            )
+          );
+        }
       }
     }
     const moveSpd = (80 + this.phase * 18) * this.spdMult;
@@ -782,17 +816,17 @@ export default class Boss extends Phaser.GameObjects.Container {
     }
     if (this.phase >= 2) {
       const angle = Math.atan2(py - this.y, px - this.x);
-      const spd = (15 + this.phase * 15) * this.spdMult * (delta / 1000);
+      const spd = (20 + this.phase * 20) * this.spdMult * (delta / 1000);
       this.x += Math.cos(angle) * spd;
       this.y += Math.sin(angle) * spd;
     }
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(900, 2200 - this.phase * 400);
-      const count = 6 + this.phase * 3;
+      this.shootTimer = Math.max(700, 1800 - this.phase * 350);
+      const count = 8 + this.phase * 4;
       for (let i = 0; i < count; i++) {
         const sa = (i / count) * Math.PI * 2 + this.breathPhase;
-        const spd = 120 + this.phase * 25;
+        const spd = 140 + this.phase * 30;
         projectiles.push(
           new Projectile(
             this.scene,
@@ -800,12 +834,31 @@ export default class Boss extends Phaser.GameObjects.Container {
             this.y,
             Math.cos(sa) * spd,
             Math.sin(sa) * spd,
-            8,
+            10,
             0xcc77ff,
-            2500,
+            2800,
             false
           )
         );
+      }
+      if (this.phase >= 3) {
+        const aimed = Math.atan2(py - this.y, px - this.x);
+        for (let i = 0; i < 3; i++) {
+          const spread = (i - 1) * 0.15;
+          projectiles.push(
+            new Projectile(
+              this.scene,
+              this.x,
+              this.y,
+              Math.cos(aimed + spread) * 220,
+              Math.sin(aimed + spread) * 220,
+              12,
+              0xff44ff,
+              2200,
+              false
+            )
+          );
+        }
       }
     }
     for (const p of projectiles) {
