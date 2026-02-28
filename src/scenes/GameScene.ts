@@ -25,15 +25,15 @@ const BOSS_ORDER: BossType[] = [
 const ZONE_ENEMIES: EnemyType[][] = [
   ["loremIpsum", "watermark"],
   ["loremIpsum", "watermark", "clickbait"],
-  ["clickbait", "botnet", "deepfake", "scraper"],
-  ["botnet", "deepfake", "scraper", "malware", "overfit", "phishing"],
-  ["malware", "overfit", "phishing", "hallucination", "ddos", "bias"],
-  ["bias", "ddos", "captcha", "ransomware", "trojan", "zeroDay"],
+  ["clickbait", "botnet", "deepfake", "scraper", "dropout"],
+  ["botnet", "deepfake", "scraper", "dropout", "embedding", "malware", "phishing"],
+  ["malware", "phishing", "hallucination", "ddos", "gradient", "bias"],
+  ["bias", "ddos", "captcha", "ransomware", "trojan", "zeroDay", "attention"],
   [
     "loremIpsum", "watermark", "clickbait",
-    "botnet", "deepfake", "scraper", "overfit",
-    "malware", "phishing", "hallucination", "ddos",
-    "bias", "captcha", "ransomware", "trojan", "zeroDay",
+    "botnet", "deepfake", "scraper", "dropout", "embedding",
+    "malware", "phishing", "hallucination", "ddos", "gradient",
+    "bias", "captcha", "ransomware", "trojan", "attention", "zeroDay",
   ],
 ];
 
@@ -103,6 +103,9 @@ export default class GameScene extends Phaser.Scene {
 
   private paused = false;
   private helpVisible = false;
+  private exitConfirmVisible = false;
+  private exitMenuIndex = 0;
+  private exitMenuItems: Phaser.GameObjects.Text[] = [];
   private overlayGfx!: Phaser.GameObjects.Graphics;
   private overlayTexts: Phaser.GameObjects.Text[] = [];
   private dangerGfx!: Phaser.GameObjects.Graphics;
@@ -149,6 +152,9 @@ export default class GameScene extends Phaser.Scene {
     this.weaponTier = 1;
     this.paused = false;
     this.helpVisible = false;
+    this.exitConfirmVisible = false;
+    this.exitMenuIndex = 0;
+    this.exitMenuItems = [];
   }
 
   create() {
@@ -207,7 +213,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.input.keyboard!.on("keydown-H", () => {
       if (this.gameState === "gameOver" || this.gameState === "victory") return;
-      if (this.helpVisible) return;
+      if (this.helpVisible || this.exitConfirmVisible) return;
       this.paused = true;
       this.helpVisible = true;
       this.drawOverlay();
@@ -220,18 +226,51 @@ export default class GameScene extends Phaser.Scene {
       this.drawOverlay();
     });
     this.input.keyboard!.on("keydown-ESC", () => {
+      if (this.exitConfirmVisible) {
+        this.clearOverlay();
+        this.paused = false;
+        this.exitConfirmVisible = false;
+        return;
+      }
       if (this.helpVisible || this.paused) {
         this.clearOverlay();
         this.paused = false;
         this.helpVisible = false;
+        return;
       }
+      if (this.gameState === "gameOver" || this.gameState === "victory") return;
+      this.paused = true;
+      this.exitConfirmVisible = true;
+      this.exitMenuIndex = 0;
+      this.drawExitConfirm();
     });
     this.input.keyboard!.on("keydown-ENTER", () => {
+      if (this.exitConfirmVisible) {
+        if (this.exitMenuIndex === 0) {
+          this.clearOverlay();
+          this.paused = false;
+          this.exitConfirmVisible = false;
+        } else {
+          this.scene.start("TitleScene");
+        }
+        return;
+      }
       if (this.paused && !this.helpVisible) {
         this.clearOverlay();
         this.paused = false;
       }
     });
+
+    const exitNav = (dir: number) => {
+      if (!this.exitConfirmVisible) return;
+      this.exitMenuIndex = (this.exitMenuIndex + dir + 2) % 2;
+      audio.play("uiNavigate");
+      this.updateExitMenu();
+    };
+    this.input.keyboard!.on("keydown-UP", () => exitNav(-1));
+    this.input.keyboard!.on("keydown-DOWN", () => exitNav(1));
+    this.input.keyboard!.on("keydown-W", () => exitNav(-1));
+    this.input.keyboard!.on("keydown-S", () => exitNav(1));
 
     if (DEV.enabled) {
       this.input.keyboard!.on("keydown-K", () => this.devKillAll());
@@ -352,6 +391,11 @@ export default class GameScene extends Phaser.Scene {
     const bossType = BOSS_ORDER[Math.min(bossIdx, BOSS_ORDER.length - 1)];
     const name = BOSS_NAMES[bossType];
     this.gameState = "bossIntro";
+
+    const bossEnemyCount = 12 + this.zone * 6;
+    this.layerEnemiesTotal = bossEnemyCount;
+    this.buildSpawnQueue(bossEnemyCount);
+
     this.showMessage(`// ${name}`, `zone ${this.zone} boss`, 2500);
     this.time.delayedCall(2500, () => {
       this.boss = new Boss(this, w / 2, h * 0.35, bossType, this.zone);
@@ -390,16 +434,16 @@ export default class GameScene extends Phaser.Scene {
     const unlocks: Record<number, string> = {
       2: "NEW ENEMY: clickbait, explosive kamikaze",
       4: "NEW WEAPON: piercing rounds unlocked",
-      5: "NEW ENEMY: bias, lunging predator",
+      5: "NEW ENEMY: dropout, the flickering neuron + bias, lunging predator",
       7: "NEW ENEMY: botnet, splits on death + ddos swarm",
       8: "NEW WEAPON: homing + shockwave + PAYLOAD unlocked",
       10: "NEW ENEMY: deepfake + ransomware, the heavy lock",
       11: "NEW ENEMY: phishing, ranged threat",
       13: "NEW WEAPON: chain + orbital + BEAM LANCE unlocked",
-      14: "NEW ENEMY: scraper + trojan, the deceiver",
+      14: "NEW ENEMY: scraper + trojan + embedding, the vector jumper",
       16: "NEW ENEMY: captcha, frontal shield",
-      17: "NEW ENEMY: overfit, fractal hunter + zeroDay assassin",
-      19: "NEW ENEMY: hallucination, phase walker",
+      17: "NEW ENEMY: gradient descent, accelerating threat + zeroDay assassin",
+      19: "NEW ENEMY: hallucination, phase walker + attention head, the focused eye",
       20: "MAX TIER + RAILGUN + all enemies unleashed",
     };
     return unlocks[this.layer] ?? null;
@@ -626,7 +670,7 @@ export default class GameScene extends Phaser.Scene {
 
   // ===== Spawn Queue (continuous flow) =====
   private updateSpawnQueue(delta: number) {
-    if (this.gameState !== "playing" || this.spawnQueue.length === 0) return;
+    if ((this.gameState !== "playing" && this.gameState !== "boss") || this.spawnQueue.length === 0) return;
     this.spawnAccum += delta;
     while (
       this.spawnQueue.length > 0 &&
@@ -754,15 +798,6 @@ export default class GameScene extends Phaser.Scene {
   private updateBoss(delta: number) {
     if (!this.boss || !this.boss.scene) return;
     this.boss.update(delta, this.player.x, this.player.y, this.projectiles);
-
-    if (this.boss.wantsSpawn && this.enemies.length < 12) {
-      const types =
-        ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
-      const type = types[Math.floor(Math.random() * types.length)];
-      this.enemies.push(
-        new Enemy(this, this.boss.spawnX, this.boss.spawnY, type, this.zone)
-      );
-    }
 
     if (this.boss.isDead && this.boss.deathCinematic) {
       if (this.gameState !== "bossDeath") {
@@ -1381,6 +1416,76 @@ export default class GameScene extends Phaser.Scene {
     this.overlayGfx.clear();
     for (const t of this.overlayTexts) t.destroy();
     this.overlayTexts = [];
+    this.exitMenuItems = [];
+  }
+
+  private drawExitConfirm() {
+    const w = this.scale.width,
+      h = this.scale.height;
+    const mono = { fontFamily: '"Share Tech Mono", monospace' };
+
+    this.overlayGfx.clear();
+    this.overlayGfx.fillStyle(0x000000, 0.75);
+    this.overlayGfx.fillRect(0, 0, w, h);
+
+    const cx = w / 2;
+    let y = h * 0.38;
+
+    const title = this.add
+      .text(cx, y, "// TERMINATE?", {
+        ...mono,
+        fontSize: "22px",
+        color: "#f4f4f5",
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setDepth(30001)
+      .setScrollFactor(0);
+    this.overlayTexts.push(title);
+
+    y += 28;
+
+    const sub = this.add
+      .text(cx, y, "all context will be lost", {
+        ...mono,
+        fontSize: "11px",
+        color: "#52525b",
+      })
+      .setOrigin(0.5)
+      .setDepth(30001)
+      .setScrollFactor(0);
+    this.overlayTexts.push(sub);
+
+    y += 36;
+
+    const resumeItem = this.add
+      .text(cx, y, "", { ...mono, fontSize: "14px", color: "#00ffee" })
+      .setOrigin(0.5)
+      .setDepth(30001)
+      .setScrollFactor(0);
+    this.overlayTexts.push(resumeItem);
+
+    y += 26;
+
+    const terminateItem = this.add
+      .text(cx, y, "", { ...mono, fontSize: "14px", color: "#52525b" })
+      .setOrigin(0.5)
+      .setDepth(30001)
+      .setScrollFactor(0);
+    this.overlayTexts.push(terminateItem);
+
+    this.exitMenuItems = [resumeItem, terminateItem];
+    this.updateExitMenu();
+  }
+
+  private updateExitMenu() {
+    const labels = ["RESUME", "TERMINATE"];
+    for (let i = 0; i < this.exitMenuItems.length; i++) {
+      const selected = i === this.exitMenuIndex;
+      this.exitMenuItems[i]
+        .setText((selected ? "> " : "  ") + labels[i])
+        .setColor(selected ? "#00ffee" : "#52525b");
+    }
   }
 
   // ===== Drawing =====

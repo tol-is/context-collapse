@@ -203,51 +203,65 @@ const ENEMIES: CreatureEntry[] = [
     },
   },
   {
-    name: "OVERFIT",
+    name: "DROPOUT",
     type: "enemy",
-    color: 0xff0066,
-    colorAccent: 0xff0099,
-    abilities: ["Predicts movement", "Pattern lock"],
+    color: 0x00aaff,
+    colorAccent: 0x44ccff,
+    abilities: ["Flickering segments", "Erratic movement"],
     story:
-      "It memorized the training data too well. Layered echoes of every pattern it's seen, drifting in and out of sync. Confident, rigid, and always one step behind the present.",
+      "A regularization technique gone rogue. It kills its own neurons to generalize, but out here, the flickering makes it impossible to pin down.",
     draw: (gfx, t) => {
-      const echoes = 4;
-      for (let e = echoes; e >= 0; e--) {
-        const delay = e * 0.35;
-        const phase = t * 1.5 - delay;
-        const drift = e * 2 * (1 + Math.sin(t + e) * 0.3);
-        const ox = Math.sin(phase * 2 + e * 0.8) * drift;
-        const oy = Math.cos(phase * 1.6 + e * 1.1) * drift;
-        const fade = 1 - e * 0.2;
-        const r = 12 - e * 0.5;
-        gfx.lineStyle(
-          1.5,
-          e === 0 ? 0xff0066 : 0xff0099,
-          fade * (e === 0 ? 0.85 : 0.35)
-        );
-        gfx.beginPath();
-        const verts = 5;
-        for (let i = 0; i <= verts; i++) {
-          const va = (i / verts) * Math.PI * 2 + phase;
-          const vr = r + Math.sin(va * 2 + t * 1.5) * 2;
-          if (i === 0)
-            gfx.moveTo(ox + Math.cos(va) * vr, oy + Math.sin(va) * vr);
-          else gfx.lineTo(ox + Math.cos(va) * vr, oy + Math.sin(va) * vr);
+      const segH = 5;
+      const segW = 18;
+      const gap = 2;
+      const segs = 6;
+      const totalH = segs * (segH + gap) - gap;
+      const startY = -totalH / 2;
+      for (let i = 0; i < segs; i++) {
+        const active = Math.sin(t * 3 + i * 1.7) > -0.3;
+        const sy = startY + i * (segH + gap);
+        if (active) {
+          gfx.fillStyle(i % 2 === 0 ? 0x00aaff : 0x44ccff, 0.85);
+          gfx.fillRect(-segW / 2, sy, segW, segH);
+        } else {
+          gfx.lineStyle(0.5, 0x44ccff, 0.2);
+          const jx = (Math.random() - 0.5) * 3;
+          gfx.strokeRect(-segW / 2 + jx, sy, segW, segH);
         }
-        gfx.closePath();
-        gfx.strokePath();
       }
-      gfx.fillStyle(0xff0066, 0.8);
+      gfx.fillStyle(0x00aaff, 0.7);
+      gfx.fillCircle(0, 0, 4);
+      gfx.fillStyle(0x44ccff, 0.5);
+      gfx.fillCircle(0, 0, 2);
+    },
+  },
+  {
+    name: "EMBEDDING",
+    type: "enemy",
+    color: 0x00ff88,
+    colorAccent: 0x66ffaa,
+    abilities: ["Vector warp", "Spatial jumps"],
+    story:
+      "Data mapped into latent space. It jumps between coordinates in patterns that only make sense in higher dimensions.",
+    draw: (gfx, t) => {
+      const pts: { x: number; y: number }[] = [];
+      const count = 5;
+      for (let i = 0; i < count; i++) {
+        const ang = (i / count) * Math.PI * 2 + t;
+        const r = 12 + Math.sin(t * 1.5 + i * 1.8) * 3;
+        pts.push({ x: Math.cos(ang) * r, y: Math.sin(ang) * r });
+      }
+      gfx.lineStyle(0.5, 0x66ffaa, 0.25);
+      for (let i = 0; i < pts.length; i++)
+        for (let j = i + 1; j < pts.length; j++)
+          gfx.lineBetween(pts[i].x, pts[i].y, pts[j].x, pts[j].y);
+      for (let i = 0; i < pts.length; i++) {
+        const pulse = 0.7 + Math.sin(t * 2 + i) * 0.25;
+        gfx.fillStyle(i === 0 ? 0x00ff88 : 0x66ffaa, pulse);
+        gfx.fillCircle(pts[i].x, pts[i].y, i === 0 ? 4 : 2.5);
+      }
+      gfx.fillStyle(0x00ff88, 0.6);
       gfx.fillCircle(0, 0, 5);
-      gfx.fillStyle(0xff0099, 0.6);
-      gfx.fillCircle(0, 0, 3);
-      for (let i = 1; i <= 3; i++) {
-        const fade = 0.4 - i * 0.1;
-        gfx.lineStyle(1, 0xff0099, fade);
-        gfx.strokeCircle(18 + i * 9, -3 + i * 2, 3.5);
-        gfx.fillStyle(0xff0099, fade * 0.5);
-        gfx.fillCircle(18 + i * 9, -3 + i * 2, 1.5);
-      }
     },
   },
   {
@@ -616,6 +630,56 @@ const ENEMIES: CreatureEntry[] = [
     },
   },
   {
+    name: "GRADIENT DESCENT",
+    type: "enemy",
+    color: 0xff6600,
+    colorAccent: 0xff9944,
+    abilities: ["Accelerating rush", "Speed resets on overshoot"],
+    story:
+      "It follows the steepest path downhill. The gradient gets steeper and the descent faster. If you are the minimum, you are the target.",
+    draw: (gfx, t) => {
+      const heat = (Math.sin(t * 2) + 1) * 0.5;
+      const spin = t * 2;
+      const turns = 1.8 + heat * 1.2;
+      const outerR = 18 - heat * 3;
+      const innerR = 3;
+      const steps = 50;
+      gfx.lineStyle(1.5 + heat * 1.5, 0xff6600, 0.5 + heat * 0.35);
+      gfx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const p = i / steps;
+        const ang = spin + p * turns * Math.PI * 2;
+        const r = outerR - (outerR - innerR) * p;
+        const px = Math.cos(ang) * r;
+        const py = Math.sin(ang) * r;
+        if (i === 0) gfx.moveTo(px, py);
+        else gfx.lineTo(px, py);
+      }
+      gfx.strokePath();
+      if (heat > 0.2) {
+        gfx.lineStyle(0.7, 0xff9944, heat * 0.25);
+        gfx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const p = i / steps;
+          const ang = spin - 0.4 + p * turns * Math.PI * 2;
+          const r = outerR + 2 - (outerR + 2 - innerR) * p;
+          const px = Math.cos(ang) * r;
+          const py = Math.sin(ang) * r;
+          if (i === 0) gfx.moveTo(px, py);
+          else gfx.lineTo(px, py);
+        }
+        gfx.strokePath();
+      }
+      const headAng = spin + turns * Math.PI * 2;
+      const hx = Math.cos(headAng) * innerR;
+      const hy = Math.sin(headAng) * innerR;
+      gfx.fillStyle(0xff9944, 0.9 + heat * 0.1);
+      gfx.fillCircle(hx, hy, 4 + heat * 2.5);
+      gfx.fillStyle(0xffffff, 0.5 + heat * 0.4);
+      gfx.fillCircle(hx, hy, 1.5 + heat);
+    },
+  },
+  {
     name: "TROJAN",
     type: "enemy",
     color: 0xcc8800,
@@ -666,6 +730,56 @@ const ENEMIES: CreatureEntry[] = [
             Math.cos(la) * 24,
             Math.sin(la + 0.3) * 24
           );
+        }
+      }
+    },
+  },
+  {
+    name: "ATTENTION HEAD",
+    type: "enemy",
+    color: 0xff00ff,
+    colorAccent: 0xff66ff,
+    abilities: ["Focus beam", "Ramping damage", "Must break line of sight"],
+    story:
+      "The mechanism that decides what matters. Once it locks on, the attention weight climbs. Break its gaze or bear the full weight of its focus.",
+    draw: (gfx, t) => {
+      const focusPct = (Math.sin(t * 0.8) + 1) * 0.5;
+      const irisR = 10;
+      const outerR = 18;
+      gfx.fillStyle(0xff00ff, 0.15 + focusPct * 0.1);
+      gfx.fillEllipse(0, 0, outerR * 2.2, outerR * 1.4);
+      gfx.lineStyle(1.5, 0xff00ff, 0.7);
+      gfx.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const a = -Math.PI * 0.35 + (i / 20) * Math.PI * 0.7;
+        const px = Math.cos(a) * outerR * 1.1;
+        const py = Math.sin(a) * outerR * 0.7;
+        if (i === 0) gfx.moveTo(px, py);
+        else gfx.lineTo(px, py);
+      }
+      gfx.strokePath();
+      gfx.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const a = Math.PI * 0.65 + (i / 20) * Math.PI * 0.7;
+        const px = Math.cos(a) * outerR * 1.1;
+        const py = Math.sin(a) * outerR * 0.7;
+        if (i === 0) gfx.moveTo(px, py);
+        else gfx.lineTo(px, py);
+      }
+      gfx.strokePath();
+      gfx.fillStyle(0xff66ff, 0.85);
+      gfx.fillCircle(0, 0, irisR);
+      gfx.fillStyle(0x110011, 0.95);
+      gfx.fillCircle(0, 0, irisR * 0.5 - focusPct * 2);
+      gfx.fillStyle(0xffffff, 0.4);
+      gfx.fillCircle(-2.5, -2.5, 2);
+      if (focusPct > 0.2) {
+        const beamLen = 40 + focusPct * 50;
+        gfx.lineStyle(1 + focusPct * 3, 0xff66ff, 0.15 + focusPct * 0.45);
+        gfx.lineBetween(outerR, 0, beamLen, 0);
+        if (focusPct > 0.5) {
+          gfx.lineStyle(focusPct * 1.5, 0xffffff, focusPct * 0.25);
+          gfx.lineBetween(outerR, 0, beamLen * 0.7, 0);
         }
       }
     },

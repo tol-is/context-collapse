@@ -26,19 +26,11 @@ const ALL_WEAPONS: WeaponMod[] = [
   "laser",
 ];
 
-const WAVE_POOL: EnemyType[][] = [
-  ["loremIpsum", "watermark"],
-  ["loremIpsum", "watermark", "clickbait"],
-  ["clickbait", "botnet", "deepfake", "scraper"],
-  ["botnet", "deepfake", "scraper", "malware", "overfit", "phishing"],
-  ["malware", "overfit", "phishing", "hallucination", "ddos", "bias"],
-  ["bias", "ddos", "captcha", "ransomware", "trojan", "zeroDay"],
-  [
-    "loremIpsum", "watermark", "clickbait",
-    "botnet", "deepfake", "scraper", "overfit",
-    "malware", "phishing", "hallucination", "ddos",
-    "bias", "captcha", "ransomware", "trojan", "zeroDay",
-  ],
+const ALL_ENEMIES: EnemyType[] = [
+  "loremIpsum", "watermark", "clickbait",
+  "botnet", "deepfake", "scraper", "dropout", "embedding",
+  "malware", "phishing", "hallucination", "ddos", "gradient",
+  "bias", "captcha", "ransomware", "trojan", "attention", "zeroDay",
 ];
 
 export default class EvalModeScene extends Phaser.Scene {
@@ -47,15 +39,10 @@ export default class EvalModeScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private systemPrompt: SystemPrompt = "autocomplete";
 
-  private wave = 0;
-  private waveActive = false;
-  private spawnQueue: { type: EnemyType; delay: number }[] = [];
-  private spawnAccum = 0;
-  private waveEnemiesSpawned = 0;
-  private waveEnemiesTotal = 0;
+  private spawnTimer = 0;
+  private spawnInterval = 600;
 
   private selectedWeapon = 0;
-  private weaponTier = 1;
   private totalKills = 0;
   private combo = 0;
   private comboTimer = 0;
@@ -104,17 +91,12 @@ export default class EvalModeScene extends Phaser.Scene {
 
   init(data: { systemPrompt?: SystemPrompt }) {
     this.systemPrompt = data.systemPrompt ?? "autocomplete";
-    this.wave = 0;
-    this.waveActive = false;
-    this.spawnQueue = [];
-    this.spawnAccum = 0;
-    this.waveEnemiesSpawned = 0;
-    this.waveEnemiesTotal = 0;
+    this.spawnTimer = 0;
+    this.spawnInterval = 600;
     this.projectiles = [];
     this.enemies = [];
     this.pickups = [];
     this.selectedWeapon = 0;
-    this.weaponTier = 1;
     this.totalKills = 0;
     this.combo = 0;
     this.comboTimer = 0;
@@ -163,11 +145,7 @@ export default class EvalModeScene extends Phaser.Scene {
 
     const font = { ...mono, fontSize: "13px", color: "#bb88dd" };
     this.texts.mode = this.add
-      .text(8, 6, "EVAL", { ...font, color: "#52525b", fontSize: "11px" })
-      .setDepth(20002)
-      .setScrollFactor(0);
-    this.texts.wave = this.add
-      .text(60, 6, "", { ...font, fontSize: "13px", color: "#f4f4f5" })
+      .text(8, 6, "EVAL", { ...font, color: "#52525b", fontSize: "13px" })
       .setDepth(20002)
       .setScrollFactor(0);
     this.texts.hp = this.add
@@ -247,11 +225,10 @@ export default class EvalModeScene extends Phaser.Scene {
     });
 
     this.showMessage("EVAL MODE", "TAB to switch weapons", 2200);
-    this.time.delayedCall(1500, () => this.startNextWave());
   }
 
   private get zone() {
-    return Math.min(7, Math.ceil(this.wave / 2));
+    return Math.min(7, 1 + Math.floor(this.totalKills / 30));
   }
 
   private getArenaBounds() {
@@ -268,48 +245,7 @@ export default class EvalModeScene extends Phaser.Scene {
     } else {
       this.player.setWeaponMod(mod, 999999);
     }
-    this.player.weaponTier = this.weaponTier;
-  }
-
-  // ===== Waves =====
-  private startNextWave() {
-    this.wave++;
-    this.waveActive = true;
-    this.waveEnemiesSpawned = 0;
-    this.spawnAccum = 0;
-
-    this.weaponTier = Math.min(5, Math.ceil(this.wave / 2));
-    this.player.weaponTier = this.weaponTier;
-    this.applyWeapon();
-
-    if (this.player.promptCharges < this.player.maxPromptCharges) {
-      this.player.promptCharges = Math.min(
-        this.player.maxPromptCharges,
-        this.player.promptCharges + 1
-      );
-    }
-
-    const count = 12 + this.wave * 5;
-    this.waveEnemiesTotal = count;
-    this.buildSpawnQueue(count);
-
-    if (this.wave > 1) {
-      this.showMessage(`WAVE ${this.wave}`, `tier ${this.weaponTier}`, 1200);
-    }
-  }
-
-  private buildSpawnQueue(total: number) {
-    const pool = WAVE_POOL[Math.min(this.zone - 1, WAVE_POOL.length - 1)];
-    this.spawnQueue = [];
-    const baseInterval = Math.max(140, 520 - this.wave * 22);
-    const jitter = baseInterval * 0.5;
-    let accum = 300;
-    for (let i = 0; i < total; i++) {
-      const type = pool[Math.floor(Math.random() * pool.length)];
-      this.spawnQueue.push({ type, delay: accum });
-      accum += baseInterval + (Math.random() - 0.5) * jitter;
-    }
-    this.spawnQueue.sort((a, b) => a.delay - b.delay);
+    this.player.weaponTier = 5;
   }
 
   private spawnOneEnemy(type: EnemyType) {
@@ -335,7 +271,6 @@ export default class EvalModeScene extends Phaser.Scene {
         break;
     }
     this.enemies.push(new Enemy(this, ex, ey, type, this.zone));
-    this.waveEnemiesSpawned++;
   }
 
   // ===== Special Ability =====
@@ -455,7 +390,7 @@ export default class EvalModeScene extends Phaser.Scene {
     if (this.dead) return;
 
     this.updateInput(delta);
-    this.updateSpawnQueue(delta);
+    this.updateSpawning(delta);
     this.updateEnemies(delta);
     this.updateProjectiles(delta);
     this.updatePickups(delta);
@@ -463,7 +398,6 @@ export default class EvalModeScene extends Phaser.Scene {
     this.updateChargeRegen(delta);
     this.keepWeaponAlive();
     this.checkCollisions();
-    this.checkWaveProgress();
     this.checkPlayerDeath();
     this.drawArena();
     this.drawPickups();
@@ -524,16 +458,17 @@ export default class EvalModeScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.e)) this.useSpecialAbility();
   }
 
-  // ===== Spawn Queue =====
-  private updateSpawnQueue(delta: number) {
-    if (!this.waveActive || this.spawnQueue.length === 0) return;
-    this.spawnAccum += delta;
-    while (
-      this.spawnQueue.length > 0 &&
-      this.spawnQueue[0].delay <= this.spawnAccum
-    ) {
-      const next = this.spawnQueue.shift()!;
-      this.spawnOneEnemy(next.type);
+  private updateSpawning(delta: number) {
+    const alive = this.enemies.filter((e) => !e.isDead).length;
+    if (alive >= 40) return;
+
+    this.spawnTimer -= delta;
+    if (this.spawnTimer <= 0) {
+      const type =
+        ALL_ENEMIES[Math.floor(Math.random() * ALL_ENEMIES.length)];
+      this.spawnOneEnemy(type);
+      this.spawnInterval = Math.max(150, 600 - this.totalKills * 2);
+      this.spawnTimer = this.spawnInterval + (Math.random() - 0.5) * this.spawnInterval * 0.4;
     }
   }
 
@@ -1012,23 +947,6 @@ export default class EvalModeScene extends Phaser.Scene {
     }
   }
 
-  // ===== Wave Progress =====
-  private checkWaveProgress() {
-    if (!this.waveActive) return;
-    const allSpawned =
-      this.waveEnemiesSpawned >= this.waveEnemiesTotal &&
-      this.spawnQueue.length === 0;
-    const allDead = this.enemies.filter((e) => !e.isDead).length === 0;
-
-    if (allSpawned && allDead) {
-      this.waveActive = false;
-      audio.play("layerComplete");
-      this.time.delayedCall(1500, () => {
-        if (!this.dead) this.startNextWave();
-      });
-    }
-  }
-
   private checkPlayerDeath() {
     if (this.player.isDead && !this.dead) {
       this.dead = true;
@@ -1074,7 +992,6 @@ export default class EvalModeScene extends Phaser.Scene {
     y += 30;
 
     const stats: [string, string][] = [
-      ["WAVE", `${this.wave}`],
       ["KILLS", `${this.totalKills}`],
     ];
     for (const [label, val] of stats) {
@@ -1219,8 +1136,6 @@ export default class EvalModeScene extends Phaser.Scene {
     const w = this.scale.width,
       h = this.scale.height;
     this.hudGfx.clear();
-
-    this.texts.wave.setText(`W${this.wave}`).setPosition(60, 6);
 
     const botY = h - 24;
     this.hudGfx.fillStyle(0x000000, 0.35);

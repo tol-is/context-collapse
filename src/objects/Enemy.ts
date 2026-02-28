@@ -8,15 +8,18 @@ export type EnemyType =
   | "bias"
   | "deepfake"
   | "scraper"
-  | "overfit"
+  | "dropout"
+  | "embedding"
   | "botnet"
   | "phishing"
   | "captcha"
   | "hallucination"
   | "malware"
+  | "gradient"
   | "ransomware"
   | "ddos"
   | "trojan"
+  | "attention"
   | "zeroDay";
 
 interface EnemyConfig {
@@ -35,9 +38,9 @@ type EnemyTier = 1 | 2 | 3 | 4;
 
 const ENEMY_TIER: Record<EnemyType, EnemyTier> = {
   loremIpsum: 1, watermark: 1, clickbait: 1,
-  botnet: 2, deepfake: 2, scraper: 2, overfit: 2,
-  malware: 3, phishing: 3, hallucination: 3, ddos: 3,
-  bias: 4, captcha: 4, ransomware: 4, trojan: 4, zeroDay: 4,
+  botnet: 2, deepfake: 2, scraper: 2, dropout: 2, embedding: 2,
+  malware: 3, phishing: 3, hallucination: 3, ddos: 3, gradient: 3,
+  bias: 4, captcha: 4, ransomware: 4, trojan: 4, zeroDay: 4, attention: 4,
 };
 
 const CONFIGS: Record<EnemyType, EnemyConfig> = {
@@ -109,16 +112,27 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     color: 0x7700ff,
     colorAccent: 0xaa00ff,
   },
-  overfit: {
-    health: 60,
-    speed: 100,
-    damage: 15,
-    chaseRange: 600,
-    attackRange: 32,
-    attackCooldown: 1500,
-    radius: 16,
-    color: 0xff0066,
-    colorAccent: 0xff0099,
+  dropout: {
+    health: 55,
+    speed: 95,
+    damage: 14,
+    chaseRange: 550,
+    attackRange: 30,
+    attackCooldown: 1400,
+    radius: 15,
+    color: 0x00aaff,
+    colorAccent: 0x44ccff,
+  },
+  embedding: {
+    health: 50,
+    speed: 85,
+    damage: 13,
+    chaseRange: 500,
+    attackRange: 28,
+    attackCooldown: 1300,
+    radius: 13,
+    color: 0x00ff88,
+    colorAccent: 0x66ffaa,
   },
   // --- Tier 3: Threats ---
   malware: {
@@ -165,6 +179,17 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     color: 0x00cc44,
     colorAccent: 0x44ff88,
   },
+  gradient: {
+    health: 70,
+    speed: 60,
+    damage: 18,
+    chaseRange: 700,
+    attackRange: 28,
+    attackCooldown: 1600,
+    radius: 14,
+    color: 0xff6600,
+    colorAccent: 0xff9944,
+  },
   // --- Tier 4: Dangers ---
   bias: {
     health: 90,
@@ -209,6 +234,17 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     radius: 16,
     color: 0xcc8800,
     colorAccent: 0xffaa00,
+  },
+  attention: {
+    health: 85,
+    speed: 60,
+    damage: 8,
+    chaseRange: 600,
+    attackRange: 250,
+    attackCooldown: 2000,
+    radius: 16,
+    color: 0xff00ff,
+    colorAccent: 0xff66ff,
   },
   zeroDay: {
     health: 70,
@@ -282,8 +318,17 @@ export default class Enemy extends Phaser.GameObjects.Container {
   private biasLunging = false;
   private biasLungeTimer = 0;
   private scraperAnts = 0;
-  private overfitTilt = 0;
-  private prevPlayerPositions: { x: number; y: number }[] = [];
+  private dropoutSegments = [true, true, true, true, true, true];
+  private dropoutTimer = 0;
+  private embeddingNodes: { x: number; y: number }[] = [];
+  private embeddingIdx = 0;
+  private embeddingWarpTimer = 0;
+  private gradientSpeed = 60;
+  private gradientTrail: { x: number; y: number; age: number }[] = [];
+  private gradientPrevDist = 0;
+  private attentionFocus = 0;
+  private attentionCooldown = 0;
+  private attentionBeamAngle = 0;
   private dfMorphPhase = 0;
   private dfRevealed = false;
   private dfRevealTimer = 0;
@@ -334,6 +379,18 @@ export default class Enemy extends Phaser.GameObjects.Container {
       this.zdVisible = false;
       this.isPhased = true;
       this.zdPhaseTimer = 2500 + Math.random() * 1500;
+    }
+
+    if (type === "embedding") {
+      const spread = 80 + Math.random() * 40;
+      for (let i = 0; i < 4; i++) {
+        const ang = (i / 4) * Math.PI * 2 + Math.random() * 0.5;
+        this.embeddingNodes.push({
+          x: Math.cos(ang) * spread,
+          y: Math.sin(ang) * spread,
+        });
+      }
+      this.embeddingWarpTimer = 1200 + Math.random() * 600;
     }
 
     if (type === "loremIpsum") {
@@ -544,12 +601,66 @@ export default class Enemy extends Phaser.GameObjects.Container {
       case "scraper":
         this.scraperAnts += dt * (this.aiState === "chase" ? 4 : 1.5);
         break;
-      case "overfit":
-        this.overfitTilt = Math.sin(this.lifetime * 0.003) * 0.2;
-        if (this.lifetime % 500 < delta) {
-          this.prevPlayerPositions.push({ x: px, y: py });
-          if (this.prevPlayerPositions.length > 5)
-            this.prevPlayerPositions.shift();
+      case "dropout":
+        this.dropoutTimer -= delta;
+        if (this.dropoutTimer <= 0) {
+          this.dropoutTimer = 200 + Math.random() * 300;
+          const idx = Math.floor(Math.random() * this.dropoutSegments.length);
+          this.dropoutSegments[idx] = !this.dropoutSegments[idx];
+        }
+        if (this.aiState === "chase") {
+          const jitter = this.dropoutSegments.filter((s) => !s).length * 0.8;
+          this.x += (Math.random() - 0.5) * jitter;
+          this.y += (Math.random() - 0.5) * jitter;
+        }
+        break;
+      case "embedding":
+        this.embeddingWarpTimer -= delta;
+        if (this.embeddingWarpTimer <= 0 && this.embeddingNodes.length > 0) {
+          this.embeddingWarpTimer = 1200 + Math.random() * 600;
+          this.embeddingIdx = (this.embeddingIdx + 1) % this.embeddingNodes.length;
+          const node = this.embeddingNodes[this.embeddingIdx];
+          const spawnX = this.x - (this.embeddingNodes[0]?.x ?? 0) + node.x;
+          const spawnY = this.y - (this.embeddingNodes[0]?.y ?? 0) + node.y;
+          const tpX = Phaser.Math.Clamp(spawnX, 40, (this.scene.scale.width ?? 800) - 40);
+          const tpY = Phaser.Math.Clamp(spawnY, 40, (this.scene.scale.height ?? 600) - 40);
+          this.x = tpX;
+          this.y = tpY;
+        }
+        break;
+      case "gradient": {
+        const maxSpd = 200;
+        const accel = 80;
+        if (this.aiState === "chase" || this.aiState === "attack") {
+          this.gradientSpeed = Math.min(maxSpd, this.gradientSpeed + accel * dt);
+          if (this.gradientPrevDist > 0 && dist > this.gradientPrevDist + 20) {
+            this.gradientSpeed = 60;
+          }
+          this.speed = Math.round(this.gradientSpeed);
+        } else {
+          this.gradientSpeed = Math.max(60, this.gradientSpeed - accel * dt * 0.5);
+          this.speed = Math.round(this.gradientSpeed);
+        }
+        this.gradientPrevDist = dist;
+        this.gradientTrail.push({ x: this.x, y: this.y, age: 0 });
+        for (let i = this.gradientTrail.length - 1; i >= 0; i--) {
+          this.gradientTrail[i].age += delta;
+          if (this.gradientTrail[i].age > 800) this.gradientTrail.splice(i, 1);
+        }
+        break;
+      }
+      case "attention":
+        this.attentionBeamAngle = Math.atan2(py - this.y, px - this.x);
+        if (this.attentionCooldown > 0) {
+          this.attentionCooldown -= delta;
+          this.attentionFocus = 0;
+        } else if (dist <= 250) {
+          this.attentionFocus = Math.min(3000, this.attentionFocus + delta);
+          this.damage = Math.round(8 + (this.attentionFocus / 3000) * 22);
+        } else {
+          if (this.attentionFocus > 0) this.attentionCooldown = 2000;
+          this.attentionFocus = 0;
+          this.damage = 8;
         }
         break;
       case "botnet":
@@ -682,8 +793,17 @@ export default class Enemy extends Phaser.GameObjects.Container {
       case "scraper":
         this.drawScraper(c, a);
         break;
-      case "overfit":
-        this.drawOverfit(c, a);
+      case "dropout":
+        this.drawDropout(c, a);
+        break;
+      case "embedding":
+        this.drawEmbedding(c, a);
+        break;
+      case "gradient":
+        this.drawGradient(c, a);
+        break;
+      case "attention":
+        this.drawAttention(c, a);
         break;
       case "botnet":
         this.drawBotnet(c, a);
@@ -943,51 +1063,190 @@ export default class Enemy extends Phaser.GameObjects.Container {
     }
   }
 
-  private drawOverfit(c: number, a: number) {
-    const echoes = 4;
-    for (let e = echoes; e >= 0; e--) {
-      const delay = e * 0.35;
-      const phase = this.overfitTilt - delay;
-      const drift = e * 1.5 * (1 + Math.sin(this.lifetime * 0.002 + e) * 0.3);
-      const ox = Math.sin(phase * 2 + e * 0.8) * drift;
-      const oy = Math.cos(phase * 1.6 + e * 1.1) * drift;
-      const fade = 1 - e * 0.2;
-      const r = 9 - e * 0.5;
+  private drawDropout(c: number, a: number) {
+    const segH = 4;
+    const segW = 14;
+    const gap = 1.5;
+    const totalH = this.dropoutSegments.length * (segH + gap) - gap;
+    const startY = -totalH / 2;
 
-      this.gfx.lineStyle(1.5, e === 0 ? c : a, fade * (e === 0 ? 0.85 : 0.35));
-      this.gfx.beginPath();
-      const verts = 5;
-      for (let i = 0; i <= verts; i++) {
-        const va = (i / verts) * Math.PI * 2 + phase;
-        const vr = r + Math.sin(va * 2 + this.lifetime * 0.003) * 2;
-        if (i === 0)
-          this.gfx.moveTo(ox + Math.cos(va) * vr, oy + Math.sin(va) * vr);
-        else this.gfx.lineTo(ox + Math.cos(va) * vr, oy + Math.sin(va) * vr);
+    for (let i = 0; i < this.dropoutSegments.length; i++) {
+      const active = this.dropoutSegments[i];
+      const sy = startY + i * (segH + gap);
+      const jx = active ? 0 : (Math.random() - 0.5) * 3;
+
+      if (active) {
+        this.gfx.fillStyle(i % 2 === 0 ? c : a, 0.85);
+        this.gfx.fillRect(-segW / 2, sy, segW, segH);
+      } else {
+        this.gfx.lineStyle(0.5, a, 0.2);
+        this.gfx.strokeRect(-segW / 2 + jx, sy, segW, segH);
       }
-      this.gfx.closePath();
+    }
+
+    const activeCount = this.dropoutSegments.filter((s) => s).length;
+    const coreAlpha = 0.4 + (activeCount / this.dropoutSegments.length) * 0.5;
+    this.gfx.fillStyle(c, coreAlpha);
+    this.gfx.fillCircle(0, 0, 3);
+    this.gfx.fillStyle(a, coreAlpha * 0.7);
+    this.gfx.fillCircle(0, 0, 1.5);
+
+    this.gfx.lineStyle(0.5, a, 0.15);
+    for (let i = 0; i < this.dropoutSegments.length - 1; i++) {
+      if (this.dropoutSegments[i] && this.dropoutSegments[i + 1]) {
+        const y1 = startY + i * (segH + gap) + segH;
+        const y2 = y1 + gap;
+        this.gfx.lineBetween(0, y1, 0, y2);
+      }
+    }
+  }
+
+  private drawEmbedding(c: number, a: number) {
+    const phase = this.lifetime * 0.002;
+    const points: { x: number; y: number }[] = [];
+    const count = 5;
+
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2 + phase;
+      const r = 9 + Math.sin(phase * 1.5 + i * 1.8) * 3;
+      points.push({ x: Math.cos(ang) * r, y: Math.sin(ang) * r });
+    }
+
+    this.gfx.lineStyle(0.5, a, 0.2);
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i + 1; j < points.length; j++) {
+        this.gfx.lineBetween(points[i].x, points[i].y, points[j].x, points[j].y);
+      }
+    }
+
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      const pulse = 0.7 + Math.sin(phase * 2 + i) * 0.25;
+      this.gfx.fillStyle(i === this.embeddingIdx % count ? c : a, pulse);
+      this.gfx.fillCircle(p.x, p.y, i === this.embeddingIdx % count ? 3.5 : 2);
+    }
+
+    this.gfx.fillStyle(c, 0.6);
+    this.gfx.fillCircle(0, 0, 4);
+    this.gfx.fillStyle(a, 0.4);
+    this.gfx.fillCircle(0, 0, 2);
+
+    if (this.embeddingWarpTimer < 300) {
+      const urgency = 1 - this.embeddingWarpTimer / 300;
+      this.gfx.lineStyle(1, c, urgency * 0.5);
+      this.gfx.strokeCircle(0, 0, 14 + urgency * 6);
+    }
+  }
+
+  private drawGradient(c: number, a: number) {
+    const heat = (this.gradientSpeed - 60) / 140;
+    const spin = this.lifetime * 0.004;
+    const turns = 1.8 + heat * 1.2;
+    const outerR = 14 - heat * 2;
+    const innerR = 2;
+    const steps = 50;
+
+    this.gfx.lineStyle(1.2 + heat * 1.3, c, 0.5 + heat * 0.35);
+    this.gfx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const angle = spin + t * turns * Math.PI * 2;
+      const r = outerR - (outerR - innerR) * t;
+      const px = Math.cos(angle) * r;
+      const py = Math.sin(angle) * r;
+      if (i === 0) this.gfx.moveTo(px, py);
+      else this.gfx.lineTo(px, py);
+    }
+    this.gfx.strokePath();
+
+    if (heat > 0.2) {
+      this.gfx.lineStyle(0.6, a, heat * 0.25);
+      this.gfx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const angle = spin - 0.4 + t * turns * Math.PI * 2;
+        const r = outerR + 2 - (outerR + 2 - innerR) * t;
+        const px = Math.cos(angle) * r;
+        const py = Math.sin(angle) * r;
+        if (i === 0) this.gfx.moveTo(px, py);
+        else this.gfx.lineTo(px, py);
+      }
       this.gfx.strokePath();
     }
 
-    this.gfx.fillStyle(c, 0.8);
-    this.gfx.fillCircle(0, 0, 4);
-    this.gfx.fillStyle(a, 0.6);
-    this.gfx.fillCircle(0, 0, 2);
+    const headAngle = spin + turns * Math.PI * 2;
+    const hx = Math.cos(headAngle) * innerR;
+    const hy = Math.sin(headAngle) * innerR;
+    this.gfx.fillStyle(a, 0.9 + heat * 0.1);
+    this.gfx.fillCircle(hx, hy, 3 + heat * 2);
+    this.gfx.fillStyle(0xffffff, 0.5 + heat * 0.4);
+    this.gfx.fillCircle(hx, hy, 1.2 + heat);
 
-    if (this.prevPlayerPositions.length >= 2 && this.aiState === "chase") {
-      const last =
-        this.prevPlayerPositions[this.prevPlayerPositions.length - 1];
-      const prev =
-        this.prevPlayerPositions[this.prevPlayerPositions.length - 2];
-      const dx = last.x - prev.x,
-        dy = last.y - prev.y;
-      for (let i = 1; i <= 3; i++) {
-        const fade = 0.4 - i * 0.1;
-        this.gfx.lineStyle(1, a, fade);
-        const px = last.x + dx * i * 0.5 - this.x;
-        const py = last.y + dy * i * 0.5 - this.y;
-        this.gfx.strokeCircle(px, py, 3);
-        this.gfx.fillStyle(a, fade * 0.5);
-        this.gfx.fillCircle(px, py, 1.5);
+    for (let i = this.gradientTrail.length - 1; i >= 0; i--) {
+      const tr = this.gradientTrail[i];
+      const fade = 1 - tr.age / 800;
+      if (fade <= 0) continue;
+      this.gfx.fillStyle(a, fade * 0.3);
+      this.gfx.fillCircle(tr.x - this.x, tr.y - this.y, 2 * fade);
+    }
+  }
+
+  private drawAttention(c: number, a: number) {
+    const focusPct = this.attentionFocus / 3000;
+    const irisR = 8;
+    const outerR = 14;
+
+    this.gfx.fillStyle(c, 0.15 + focusPct * 0.1);
+    this.gfx.fillEllipse(0, 0, outerR * 2.2, outerR * 1.4);
+
+    this.gfx.lineStyle(1.5, c, 0.7);
+    this.gfx.beginPath();
+    for (let i = 0; i <= 20; i++) {
+      const t = i / 20;
+      const ang = -Math.PI * 0.35 + t * Math.PI * 0.7;
+      const px = Math.cos(ang) * outerR * 1.1;
+      const py = Math.sin(ang) * outerR * 0.7;
+      if (i === 0) this.gfx.moveTo(px, py);
+      else this.gfx.lineTo(px, py);
+    }
+    this.gfx.strokePath();
+    this.gfx.beginPath();
+    for (let i = 0; i <= 20; i++) {
+      const t = i / 20;
+      const ang = Math.PI * 0.65 + t * Math.PI * 0.7;
+      const px = Math.cos(ang) * outerR * 1.1;
+      const py = Math.sin(ang) * outerR * 0.7;
+      if (i === 0) this.gfx.moveTo(px, py);
+      else this.gfx.lineTo(px, py);
+    }
+    this.gfx.strokePath();
+
+    this.gfx.fillStyle(a, 0.85);
+    this.gfx.fillCircle(0, 0, irisR);
+    this.gfx.fillStyle(0x110011, 0.95);
+    this.gfx.fillCircle(0, 0, irisR * 0.5 - focusPct * 2);
+    this.gfx.fillStyle(0xffffff, 0.4);
+    this.gfx.fillCircle(-2, -2, 1.5);
+
+    if (focusPct > 0) {
+      const beamLen = 60 + focusPct * 180;
+      const beamW = 1 + focusPct * 3;
+      const ba = this.attentionBeamAngle;
+      this.gfx.lineStyle(beamW, a, 0.15 + focusPct * 0.45);
+      this.gfx.lineBetween(
+        Math.cos(ba) * outerR,
+        Math.sin(ba) * outerR,
+        Math.cos(ba) * beamLen,
+        Math.sin(ba) * beamLen
+      );
+      if (focusPct > 0.5) {
+        this.gfx.lineStyle(beamW * 0.4, 0xffffff, focusPct * 0.3);
+        this.gfx.lineBetween(
+          Math.cos(ba) * outerR,
+          Math.sin(ba) * outerR,
+          Math.cos(ba) * beamLen * 0.7,
+          Math.sin(ba) * beamLen * 0.7
+        );
       }
     }
   }
