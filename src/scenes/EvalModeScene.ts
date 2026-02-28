@@ -78,6 +78,7 @@ export default class EvalModeScene extends Phaser.Scene {
   private weaponBarGfx!: Phaser.GameObjects.Graphics;
   private comboGfx!: Phaser.GameObjects.Graphics;
   private overlayGfx!: Phaser.GameObjects.Graphics;
+  private dangerGfx!: Phaser.GameObjects.Graphics;
   private texts: Record<string, Phaser.GameObjects.Text> = {};
   private overlayTexts: Phaser.GameObjects.Text[] = [];
   private msgText!: Phaser.GameObjects.Text;
@@ -134,6 +135,7 @@ export default class EvalModeScene extends Phaser.Scene {
     this.weaponBarGfx = this.add.graphics().setDepth(20001);
     this.hudGfx = this.add.graphics().setDepth(20000);
     this.overlayGfx = this.add.graphics().setDepth(30000).setScrollFactor(0);
+    this.dangerGfx = this.add.graphics().setDepth(19000).setScrollFactor(0);
 
     this.msgText = this.add
       .text(w / 2, h / 2 - 15, "", {
@@ -286,7 +288,7 @@ export default class EvalModeScene extends Phaser.Scene {
       );
     }
 
-    const count = 8 + this.wave * 4;
+    const count = 12 + this.wave * 5;
     this.waveEnemiesTotal = count;
     this.buildSpawnQueue(count);
 
@@ -298,7 +300,7 @@ export default class EvalModeScene extends Phaser.Scene {
   private buildSpawnQueue(total: number) {
     const pool = WAVE_POOL[Math.min(this.zone - 1, WAVE_POOL.length - 1)];
     this.spawnQueue = [];
-    const baseInterval = Math.max(180, 700 - this.wave * 25);
+    const baseInterval = Math.max(140, 520 - this.wave * 22);
     const jitter = baseInterval * 0.5;
     let accum = 300;
     for (let i = 0; i < total; i++) {
@@ -464,6 +466,7 @@ export default class EvalModeScene extends Phaser.Scene {
     this.checkPlayerDeath();
     this.drawArena();
     this.drawPickups();
+    this.drawDangerFlash();
     this.drawCombo();
     this.drawHUD();
     this.drawWeaponBar();
@@ -1145,6 +1148,30 @@ export default class EvalModeScene extends Phaser.Scene {
   }
 
   // ===== Drawing =====
+  private drawDangerFlash() {
+    this.dangerGfx.clear();
+    const hpPct = this.player.health / this.player.maxHealth;
+    if (hpPct >= 0.25 || this.player.isDead) return;
+
+    const w = this.scale.width,
+      h = this.scale.height;
+    const severity = 1 - hpPct / 0.25;
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * (0.004 + severity * 0.006));
+    const baseAlpha = (0.08 + severity * 0.18) * pulse;
+    const edgeW = 60 + severity * 40;
+
+    for (let i = 0; i < 8; i++) {
+      const t = i / 8;
+      const a = baseAlpha * (1 - t);
+      const inset = edgeW * t;
+      this.dangerGfx.fillStyle(0xff0033, a);
+      this.dangerGfx.fillRect(inset, inset, w - inset * 2, edgeW / 8);
+      this.dangerGfx.fillRect(inset, h - inset - edgeW / 8, w - inset * 2, edgeW / 8);
+      this.dangerGfx.fillRect(inset, inset, edgeW / 8, h - inset * 2);
+      this.dangerGfx.fillRect(w - inset - edgeW / 8, inset, edgeW / 8, h - inset * 2);
+    }
+  }
+
   private drawArena() {
     const w = this.scale.width,
       h = this.scale.height;

@@ -117,6 +117,7 @@ export default class GameScene extends Phaser.Scene {
   private helpVisible = false;
   private overlayGfx!: Phaser.GameObjects.Graphics;
   private overlayTexts: Phaser.GameObjects.Text[] = [];
+  private dangerGfx!: Phaser.GameObjects.Graphics;
 
   private keys!: {
     w: Phaser.Input.Keyboard.Key;
@@ -214,6 +215,7 @@ export default class GameScene extends Phaser.Scene {
     this.input.keyboard!.on("keydown-M", () => audio.toggleMute());
 
     this.overlayGfx = this.add.graphics().setDepth(30000).setScrollFactor(0);
+    this.dangerGfx = this.add.graphics().setDepth(19000).setScrollFactor(0);
 
     this.input.keyboard!.on("keydown-H", () => {
       if (this.gameState === "gameOver" || this.gameState === "victory") return;
@@ -305,7 +307,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.weaponTier = Math.min(5, Math.floor(this.layer / 3) + 1);
     this.player.weaponTier = this.weaponTier;
-    const baseCount = 14 + this.layer * 5 + this.zone * 8;
+    const baseCount = 18 + this.layer * 6 + this.zone * 10;
     this.layerEnemiesTotal = baseCount;
     this.buildSpawnQueue(baseCount);
     this.gameState = "playing";
@@ -316,7 +318,7 @@ export default class GameScene extends Phaser.Scene {
       ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
     this.spawnQueue = [];
 
-    const baseInterval = Math.max(150, 750 - this.layer * 22);
+    const baseInterval = Math.max(120, 550 - this.layer * 20);
     const jitter = baseInterval * 0.5;
 
     let accum = 200;
@@ -454,6 +456,7 @@ export default class GameScene extends Phaser.Scene {
     this.drawArena();
     this.drawPickups();
     this.drawCollapse();
+    this.drawDangerFlash();
     this.drawCombo();
     this.updateHUD();
   }
@@ -1407,6 +1410,30 @@ export default class GameScene extends Phaser.Scene {
       const ba = 0.4 + Math.sin(Date.now() * 0.005) * 0.2;
       this.arenaGfx.lineStyle(1, 0xff0033, ba);
       this.arenaGfx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
+    }
+  }
+
+  private drawDangerFlash() {
+    this.dangerGfx.clear();
+    const hpPct = this.player.health / this.player.maxHealth;
+    if (hpPct >= 0.25 || this.player.isDead) return;
+
+    const w = this.scale.width,
+      h = this.scale.height;
+    const severity = 1 - hpPct / 0.25;
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * (0.004 + severity * 0.006));
+    const baseAlpha = (0.08 + severity * 0.18) * pulse;
+    const edgeW = 60 + severity * 40;
+
+    for (let i = 0; i < 8; i++) {
+      const t = i / 8;
+      const a = baseAlpha * (1 - t);
+      const inset = edgeW * t;
+      this.dangerGfx.fillStyle(0xff0033, a);
+      this.dangerGfx.fillRect(inset, inset, w - inset * 2, edgeW / 8);
+      this.dangerGfx.fillRect(inset, h - inset - edgeW / 8, w - inset * 2, edgeW / 8);
+      this.dangerGfx.fillRect(inset, inset, edgeW / 8, h - inset * 2);
+      this.dangerGfx.fillRect(w - inset - edgeW / 8, inset, edgeW / 8, h - inset * 2);
     }
   }
 

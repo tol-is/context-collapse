@@ -34,9 +34,9 @@ interface EnemyConfig {
 const CONFIGS: Record<EnemyType, EnemyConfig> = {
   loremIpsum: {
     health: 30,
-    speed: 60,
+    speed: 68,
     damage: 8,
-    chaseRange: 280,
+    chaseRange: 550,
     attackRange: 28,
     attackCooldown: 1200,
     radius: 14,
@@ -45,9 +45,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   watermark: {
     health: 22,
-    speed: 75,
+    speed: 85,
     damage: 6,
-    chaseRange: 240,
+    chaseRange: 500,
     attackRange: 24,
     attackCooldown: 1000,
     radius: 11,
@@ -56,9 +56,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   clickbait: {
     health: 16,
-    speed: 100,
+    speed: 115,
     damage: 24,
-    chaseRange: 350,
+    chaseRange: 700,
     attackRange: 38,
     attackCooldown: 3000,
     radius: 12,
@@ -67,9 +67,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   bias: {
     health: 48,
-    speed: 42,
+    speed: 48,
     damage: 18,
-    chaseRange: 260,
+    chaseRange: 550,
     attackRange: 140,
     attackCooldown: 2200,
     radius: 13,
@@ -78,9 +78,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   deepfake: {
     health: 30,
-    speed: 55,
+    speed: 62,
     damage: 12,
-    chaseRange: 200,
+    chaseRange: 500,
     attackRange: 30,
     attackCooldown: 1400,
     radius: 12,
@@ -89,9 +89,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   scraper: {
     health: 40,
-    speed: 58,
+    speed: 66,
     damage: 14,
-    chaseRange: 220,
+    chaseRange: 550,
     attackRange: 35,
     attackCooldown: 1600,
     radius: 14,
@@ -100,9 +100,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   overfit: {
     health: 45,
-    speed: 62,
+    speed: 70,
     damage: 13,
-    chaseRange: 250,
+    chaseRange: 600,
     attackRange: 32,
     attackCooldown: 1500,
     radius: 15,
@@ -111,9 +111,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   botnet: {
     health: 35,
-    speed: 50,
+    speed: 56,
     damage: 10,
-    chaseRange: 260,
+    chaseRange: 550,
     attackRange: 28,
     attackCooldown: 1400,
     radius: 13,
@@ -122,9 +122,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   phishing: {
     health: 25,
-    speed: 45,
+    speed: 52,
     damage: 15,
-    chaseRange: 300,
+    chaseRange: 600,
     attackRange: 200,
     attackCooldown: 2200,
     radius: 11,
@@ -133,9 +133,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   captcha: {
     health: 45,
-    speed: 38,
+    speed: 44,
     damage: 13,
-    chaseRange: 240,
+    chaseRange: 550,
     attackRange: 30,
     attackCooldown: 1600,
     radius: 16,
@@ -144,9 +144,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   hallucination: {
     health: 20,
-    speed: 70,
+    speed: 80,
     damage: 10,
-    chaseRange: 280,
+    chaseRange: 600,
     attackRange: 26,
     attackCooldown: 1200,
     radius: 10,
@@ -155,9 +155,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   malware: {
     health: 38,
-    speed: 52,
+    speed: 60,
     damage: 11,
-    chaseRange: 260,
+    chaseRange: 550,
     attackRange: 30,
     attackCooldown: 1400,
     radius: 13,
@@ -166,9 +166,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   ransomware: {
     health: 70,
-    speed: 32,
+    speed: 38,
     damage: 24,
-    chaseRange: 240,
+    chaseRange: 500,
     attackRange: 34,
     attackCooldown: 2800,
     radius: 17,
@@ -177,9 +177,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   ddos: {
     health: 12,
-    speed: 100,
+    speed: 115,
     damage: 4,
-    chaseRange: 400,
+    chaseRange: 800,
     attackRange: 22,
     attackCooldown: 800,
     radius: 7,
@@ -188,9 +188,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   trojan: {
     health: 40,
-    speed: 62,
+    speed: 70,
     damage: 22,
-    chaseRange: 160,
+    chaseRange: 500,
     attackRange: 28,
     attackCooldown: 1800,
     radius: 12,
@@ -199,9 +199,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   },
   zeroDay: {
     health: 18,
-    speed: 115,
+    speed: 130,
     damage: 32,
-    chaseRange: 500,
+    chaseRange: 900,
     attackRange: 26,
     attackCooldown: 3200,
     radius: 9,
@@ -259,9 +259,6 @@ export default class Enemy extends Phaser.GameObjects.Container {
   private flinchAmount = 0;
   private deathProgress = 0;
 
-  private wanderVx: number;
-  private wanderVy: number;
-  private wanderChangeTimer: number;
 
   private rectOffsets: { x: number; y: number; w: number; h: number }[] = [];
   private wmBreathScale = 1;
@@ -317,11 +314,6 @@ export default class Enemy extends Phaser.GameObjects.Container {
     this.breathPhase = Math.random() * Math.PI * 2;
     this.breathRate = 1.5 + Math.random();
     this.idlePhase = Math.random() * Math.PI * 2;
-
-    const wanderAngle = Math.random() * Math.PI * 2;
-    this.wanderVx = Math.cos(wanderAngle);
-    this.wanderVy = Math.sin(wanderAngle);
-    this.wanderChangeTimer = 2000 + Math.random() * 3000;
 
     if (type === "zeroDay") {
       this.zdVisible = false;
@@ -440,7 +432,7 @@ export default class Enemy extends Phaser.GameObjects.Container {
     delta: number,
     px: number,
     py: number,
-    bounds?: { x: number; y: number; w: number; h: number }
+    _bounds?: { x: number; y: number; w: number; h: number }
   ) {
     if (this.enemyType === "bias" && this.biasLunging) return;
     const spd = this.speed * (delta / 1000);
@@ -467,55 +459,18 @@ export default class Enemy extends Phaser.GameObjects.Container {
     }
 
     if (this.aiState === "chase" || this.aiState === "attack") {
-      const angle = Math.atan2(py - this.y, px - this.x);
+      const dist = Phaser.Math.Distance.Between(this.x, this.y, px, py);
+      const baseAngle = Math.atan2(py - this.y, px - this.x);
+      const flankOffset = ((this.eid % 7) - 3) * 0.12;
+      const flankFade = Math.min(1, Math.max(0, (dist - 80) / 120));
+      const angle = baseAngle + flankOffset * flankFade;
       this.x += Math.cos(angle) * spd;
       this.y += Math.sin(angle) * spd;
     } else {
-      this.wanderChangeTimer -= delta;
-      if (this.wanderChangeTimer <= 0) {
-        const newAngle = Math.random() * Math.PI * 2;
-        this.wanderVx = Math.cos(newAngle);
-        this.wanderVy = Math.sin(newAngle);
-        this.wanderChangeTimer = 1500 + Math.random() * 3000;
-      }
-
-      this.x += this.wanderVx * spd * 0.8;
-      this.y += this.wanderVy * spd * 0.8;
-
-      if (bounds) {
-        const margin = 15;
-        const left = bounds.x + margin;
-        const right = bounds.x + bounds.w - margin;
-        const top = bounds.y + margin;
-        const bottom = bounds.y + bounds.h - margin;
-
-        if (this.x <= left) {
-          this.x = left;
-          this.wanderVx = Math.abs(this.wanderVx) + Math.random() * 0.3;
-          this.wanderVy += (Math.random() - 0.5) * 0.8;
-        } else if (this.x >= right) {
-          this.x = right;
-          this.wanderVx = -Math.abs(this.wanderVx) - Math.random() * 0.3;
-          this.wanderVy += (Math.random() - 0.5) * 0.8;
-        }
-        if (this.y <= top) {
-          this.y = top;
-          this.wanderVy = Math.abs(this.wanderVy) + Math.random() * 0.3;
-          this.wanderVx += (Math.random() - 0.5) * 0.8;
-        } else if (this.y >= bottom) {
-          this.y = bottom;
-          this.wanderVy = -Math.abs(this.wanderVy) - Math.random() * 0.3;
-          this.wanderVx += (Math.random() - 0.5) * 0.8;
-        }
-
-        const len = Math.sqrt(
-          this.wanderVx * this.wanderVx + this.wanderVy * this.wanderVy
-        );
-        if (len > 0) {
-          this.wanderVx /= len;
-          this.wanderVy /= len;
-        }
-      }
+      const angle = Math.atan2(py - this.y, px - this.x);
+      const drift = spd * 0.35;
+      this.x += Math.cos(angle) * drift;
+      this.y += Math.sin(angle) * drift;
     }
   }
 

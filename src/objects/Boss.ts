@@ -41,8 +41,8 @@ const BOSS_INDEX: Record<BossType, number> = {
   singularity: 6,
 };
 
-const BASE_HP = [450, 1200, 1600, 2100, 2600, 3200, 5000];
-const SPEED_MULT = [0.9, 1.1, 1.25, 1.4, 1.5, 1.65, 1.85];
+const BASE_HP = [1400, 3600, 4800, 6000, 7500, 9000, 14000];
+const SPEED_MULT = [1.1, 1.3, 1.5, 1.65, 1.8, 1.95, 2.2];
 
 interface HexCell {
   localX: number;
@@ -374,7 +374,7 @@ export default class Boss extends Phaser.GameObjects.Container {
   private updateContentFarm(delta: number, projectiles: Projectile[]) {
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(800, 2600 - this.phase * 600);
+      this.shootTimer = Math.max(600, 2000 - this.phase * 500);
       const aliveCells = this.cells.filter((c) => c.alive);
       if (aliveCells.length > 0) {
         const cell = aliveCells[Math.floor(Math.random() * aliveCells.length)];
@@ -396,12 +396,12 @@ export default class Boss extends Phaser.GameObjects.Container {
         );
       }
     }
-    const rate = 2800 - this.phase * 600;
+    const rate = 2200 - this.phase * 500;
     let alive = 0;
     for (const cell of this.cells) {
       if (!cell.alive) {
         cell.regenTimer += delta;
-        if (cell.regenTimer > 5500 - this.phase * 1000) {
+        if (cell.regenTimer > 4400 - this.phase * 800) {
           cell.alive = true;
           cell.hp = 2;
           cell.regenTimer = 0;
@@ -448,7 +448,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     const hpPct = this.health / this.maxHealth;
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(350, 1100 - (1 - hpPct) * 700);
+      this.shootTimer = Math.max(280, 880 - (1 - hpPct) * 560);
       const a = Math.atan2(py - this.y, px - this.x);
       projectiles.push(
         new Projectile(
@@ -579,7 +579,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     this.cloneTimer += delta;
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(500, 1400 - this.phase * 300);
+      this.shootTimer = Math.max(400, 1100 - this.phase * 240);
       const volleyCount = Math.min(this.clones.length, 1 + this.phase);
       const indices = [...Array(this.clones.length).keys()];
       for (let i = indices.length - 1; i > 0; i--) {
@@ -653,7 +653,7 @@ export default class Boss extends Phaser.GameObjects.Container {
         this.apSpikes[i] = 0.6 + Math.sin(this.breathPhase * 3.5 + i) * 0.4;
       this.shootTimer -= delta;
       if (this.shootTimer <= 0) {
-        this.shootTimer = 850;
+        this.shootTimer = 680;
         const count = 14 + Math.floor((1 - this.health / this.maxHealth) * 14);
         for (let i = 0; i < count; i++) {
           const sa = (i / count) * Math.PI * 2 + this.breathPhase;
@@ -692,7 +692,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     this.oeShieldAngle += (delta / 1000) * shieldSpeed;
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = this.phase === 2 ? 1200 : 1800;
+      this.shootTimer = this.phase === 2 ? 960 : 1440;
       const count = 3 + (this.phase === 2 ? 2 : 0);
       for (let i = 0; i < count; i++) {
         const sa = this.oePatternPhase + (i / count) * Math.PI * 2;
@@ -757,7 +757,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     if (this.piGlitchActive) {
       this.shootTimer -= delta;
       if (this.shootTimer <= 0) {
-        this.shootTimer = Math.max(150, 250 - this.phase * 30);
+        this.shootTimer = Math.max(120, 200 - this.phase * 24);
         const a =
           Math.atan2(py - this.y, px - this.x) + (Math.random() - 0.5) * 0.8;
         projectiles.push(
@@ -820,7 +820,7 @@ export default class Boss extends Phaser.GameObjects.Container {
     }
     this.shootTimer -= delta;
     if (this.shootTimer <= 0) {
-      this.shootTimer = Math.max(700, 1800 - this.phase * 350);
+      this.shootTimer = Math.max(560, 1440 - this.phase * 280);
       const count = 8 + this.phase * 4;
       for (let i = 0; i < count; i++) {
         const sa = (i / count) * Math.PI * 2 + this.breathPhase;
