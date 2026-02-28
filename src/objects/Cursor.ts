@@ -237,7 +237,7 @@ export default class Cursor extends Phaser.GameObjects.Container {
 
     const mod = this.weaponMod;
     const tier = this.weaponTier;
-    const tierDmg = 1 + (tier - 1) * 0.22;
+    const tierDmg = 1 + (tier - 1) * 0.16;
     const rate =
       mod === "rapid"
         ? this.fireRate * Math.max(0.15, 0.35 - tier * 0.04)
@@ -322,14 +322,14 @@ export default class Cursor extends Phaser.GameObjects.Container {
         this.y,
         vx,
         vy,
-        finalDmg * (1.3 + tier * 0.2),
+        finalDmg * (1.0 + tier * 0.15),
         color,
         lifetime * 1.1,
         true
       );
       p.isNova = true;
-      p.novaRadius = 55 + tier * 18;
-      p.novaDamage = finalDmg * (0.5 + tier * 0.12);
+      p.novaRadius = 50 + tier * 14;
+      p.novaDamage = finalDmg * (0.4 + tier * 0.1);
       p.homing = true;
       p.homingTargets = enemies ?? [];
       p.homingStrength = 1.8;
@@ -416,14 +416,14 @@ export default class Cursor extends Phaser.GameObjects.Container {
           this.y,
           vx,
           vy,
-          finalDmg * (2.5 + tier * 0.4),
+          finalDmg * (1.8 + tier * 0.3),
           color,
           lifetime * 1.4,
           true
         );
         p.isExplosive = true;
-        p.explosiveRadius = 70 + tier * 15;
-        p.explosiveDamage = finalDmg * (1.2 + tier * 0.25);
+        p.explosiveRadius = 60 + tier * 12;
+        p.explosiveDamage = finalDmg * (0.9 + tier * 0.2);
         p.explosiveCluster = tier >= 5;
         p.radius = 10;
         projectiles.push(p);
@@ -463,7 +463,7 @@ export default class Cursor extends Phaser.GameObjects.Container {
         this.y,
         vx,
         vy,
-        finalDmg * (3.5 + tier * 0.5),
+        finalDmg * (2.5 + tier * 0.35),
         color,
         lifetime * 1.5,
         true

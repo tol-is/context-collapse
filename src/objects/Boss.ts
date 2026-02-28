@@ -41,7 +41,7 @@ const BOSS_INDEX: Record<BossType, number> = {
   singularity: 6,
 };
 
-const BASE_HP = [1400, 3600, 4800, 6000, 7500, 9000, 14000];
+const BASE_HP = [1000, 3600, 4800, 6000, 7500, 9000, 14000];
 const SPEED_MULT = [1.1, 1.3, 1.5, 1.65, 1.8, 1.95, 2.2];
 
 interface HexCell {
@@ -185,7 +185,7 @@ export default class Boss extends Phaser.GameObjects.Container {
 
   private initContentFarm() {
     this.cells = [];
-    const rings = Math.max(1, 3 - this.phase + 1);
+    const rings = Math.max(1, 2 - this.phase + 1);
     for (let ring = 0; ring <= rings; ring++) {
       if (ring === 0) {
         this.cells.push({
@@ -206,7 +206,7 @@ export default class Boss extends Phaser.GameObjects.Container {
           localY: Math.sin(angle) * ring * this.cellSize * 1.8,
           alive: true,
           hp: 2,
-          spawnCd: 2500 - this.phase * 400,
+          spawnCd: 3500 - this.phase * 300,
           pulse: Math.random() * Math.PI * 2,
           regenTimer: 0,
         });
@@ -396,12 +396,11 @@ export default class Boss extends Phaser.GameObjects.Container {
         );
       }
     }
-    const rate = 2200 - this.phase * 500;
     let alive = 0;
     for (const cell of this.cells) {
       if (!cell.alive) {
         cell.regenTimer += delta;
-        if (cell.regenTimer > 4400 - this.phase * 800) {
+        if (cell.regenTimer > 6000 - this.phase * 600) {
           cell.alive = true;
           cell.hp = 2;
           cell.regenTimer = 0;
@@ -410,13 +409,6 @@ export default class Boss extends Phaser.GameObjects.Container {
       }
       alive++;
       cell.pulse += delta / 1000;
-      cell.spawnCd -= delta;
-      if (cell.spawnCd <= 0 && !this.wantsSpawn) {
-        cell.spawnCd = rate;
-        this.wantsSpawn = true;
-        this.spawnX = this.x + cell.localX;
-        this.spawnY = this.y + cell.localY;
-      }
       const wx = this.x + cell.localX,
         wy = this.y + cell.localY;
       for (const p of projectiles) {
@@ -429,7 +421,7 @@ export default class Boss extends Phaser.GameObjects.Container {
           if (cell.hp <= 0) {
             cell.alive = false;
             cell.regenTimer = 0;
-            this.takeDamage(15);
+            this.takeDamage(25);
           }
           break;
         }

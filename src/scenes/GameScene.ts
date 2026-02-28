@@ -24,28 +24,16 @@ const BOSS_ORDER: BossType[] = [
 
 const ZONE_ENEMIES: EnemyType[][] = [
   ["loremIpsum", "watermark"],
-  ["loremIpsum", "watermark", "clickbait", "botnet"],
-  ["watermark", "clickbait", "bias", "phishing", "ddos"],
-  ["clickbait", "bias", "deepfake", "captcha", "ransomware"],
-  ["bias", "deepfake", "scraper", "hallucination", "trojan", "ddos"],
-  ["deepfake", "scraper", "overfit", "malware", "ransomware", "zeroDay"],
+  ["loremIpsum", "watermark", "clickbait"],
+  ["clickbait", "botnet", "deepfake", "scraper"],
+  ["botnet", "deepfake", "scraper", "malware", "overfit", "phishing"],
+  ["malware", "overfit", "phishing", "hallucination", "ddos", "bias"],
+  ["bias", "ddos", "captcha", "ransomware", "trojan", "zeroDay"],
   [
-    "loremIpsum",
-    "watermark",
-    "clickbait",
-    "bias",
-    "deepfake",
-    "scraper",
-    "overfit",
-    "botnet",
-    "phishing",
-    "captcha",
-    "hallucination",
-    "malware",
-    "ransomware",
-    "ddos",
-    "trojan",
-    "zeroDay",
+    "loremIpsum", "watermark", "clickbait",
+    "botnet", "deepfake", "scraper", "overfit",
+    "malware", "phishing", "hallucination", "ddos",
+    "bias", "captcha", "ransomware", "trojan", "zeroDay",
   ],
 ];
 
@@ -767,7 +755,7 @@ export default class GameScene extends Phaser.Scene {
     if (!this.boss || !this.boss.scene) return;
     this.boss.update(delta, this.player.x, this.player.y, this.projectiles);
 
-    if (this.boss.wantsSpawn && this.enemies.length < 30) {
+    if (this.boss.wantsSpawn && this.enemies.length < 12) {
       const types =
         ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
       const type = types[Math.floor(Math.random() * types.length)];
@@ -844,10 +832,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private updateContext(delta: number) {
-    const rate =
-      this.gameState === "boss"
-        ? 1.8 + this.zone * 0.15
-        : 1.0 + this.zone * 0.12;
+    if (this.gameState === "boss") return;
+    const rate = 1.0 + this.zone * 0.12;
     this.contextLevel += (delta / 1000) * rate;
     this.contextLevel = Math.min(150, this.contextLevel);
     if (this.contextLevel >= 100 && !this.collapseActive) {
@@ -948,7 +934,7 @@ export default class GameScene extends Phaser.Scene {
             enemy.health / enemy.maxHealth < 0.4
           )
             dmg *= 1.25;
-          const comboDmg = this.combo >= 20 ? 2.0 : this.combo >= 10 ? 1.5 : this.combo >= 5 ? 1.25 : 1;
+          const comboDmg = this.combo >= 20 ? 1.6 : this.combo >= 10 ? 1.35 : this.combo >= 5 ? 1.15 : 1;
           dmg *= comboDmg;
           const killed = enemy.takeDamage(dmg);
           if (killed) {

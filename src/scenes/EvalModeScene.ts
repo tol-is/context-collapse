@@ -28,15 +28,16 @@ const ALL_WEAPONS: WeaponMod[] = [
 
 const WAVE_POOL: EnemyType[][] = [
   ["loremIpsum", "watermark"],
-  ["loremIpsum", "watermark", "clickbait", "botnet"],
-  ["watermark", "clickbait", "bias", "phishing", "ddos"],
-  ["clickbait", "bias", "deepfake", "captcha", "ransomware"],
-  ["bias", "deepfake", "scraper", "hallucination", "trojan", "ddos"],
-  ["deepfake", "scraper", "overfit", "malware", "ransomware", "zeroDay"],
+  ["loremIpsum", "watermark", "clickbait"],
+  ["clickbait", "botnet", "deepfake", "scraper"],
+  ["botnet", "deepfake", "scraper", "malware", "overfit", "phishing"],
+  ["malware", "overfit", "phishing", "hallucination", "ddos", "bias"],
+  ["bias", "ddos", "captcha", "ransomware", "trojan", "zeroDay"],
   [
-    "loremIpsum", "watermark", "clickbait", "bias", "deepfake",
-    "scraper", "overfit", "botnet", "phishing", "captcha",
-    "hallucination", "malware", "ransomware", "ddos", "trojan", "zeroDay",
+    "loremIpsum", "watermark", "clickbait",
+    "botnet", "deepfake", "scraper", "overfit",
+    "malware", "phishing", "hallucination", "ddos",
+    "bias", "captcha", "ransomware", "trojan", "zeroDay",
   ],
 ];
 
@@ -733,11 +734,11 @@ export default class EvalModeScene extends Phaser.Scene {
             dmg *= 1.25;
           const comboDmg =
             this.combo >= 20
-              ? 2.0
+              ? 1.6
               : this.combo >= 10
-                ? 1.5
+                ? 1.35
                 : this.combo >= 5
-                  ? 1.25
+                  ? 1.15
                   : 1;
           dmg *= comboDmg;
           const killed = enemy.takeDamage(dmg);
