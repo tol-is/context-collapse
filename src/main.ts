@@ -8,6 +8,7 @@ import VictoryScene from "./scenes/VictoryScene";
 import CodexScene from "./scenes/CodexScene";
 import EvalModeScene from "./scenes/EvalModeScene";
 import DEV from "./devConfig";
+import { inject } from "@vercel/analytics";
 
 const scenes = [
   TitleScene,
@@ -51,6 +52,7 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 export let game: Phaser.Game;
+inject();
 
 document.fonts.load('16px "Share Tech Mono"').then(() => {
   game = new Phaser.Game(config);
