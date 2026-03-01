@@ -179,10 +179,21 @@ export default class HUD {
     const hpPct = this.health / this.maxHealth;
     const hpColor =
       hpPct > 0.5 ? "#00ffee" : hpPct > 0.25 ? "#ff0080" : "#ff0033";
+    const hpLabel = hpPct <= 0.25 ? "!! " : hpPct <= 0.4 ? "! " : "";
     this.texts.hp
-      .setText(`HP [${this.bar(hpPct, 10)}] ${Math.ceil(this.health)}`)
+      .setText(`${hpLabel}HP [${this.bar(hpPct, 10)}] ${Math.ceil(this.health)}`)
       .setPosition(10, botY + 5)
       .setColor(hpColor);
+    if (hpPct <= 0.4) {
+      const severity = 1 - hpPct / 0.4;
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() * (0.006 + severity * 0.01));
+      this.texts.hp.setAlpha(0.55 + pulse * 0.45);
+      const barBg = (0.04 + severity * 0.14) * pulse;
+      this.gfx.fillStyle(0xff0033, barBg);
+      this.gfx.fillRect(0, botY, 210, 24);
+    } else {
+      this.texts.hp.setAlpha(1);
+    }
     this.texts.tokens.setText(`TK:${this.tokens}`).setPosition(200, botY + 5);
 
     const cdPct =

@@ -1050,6 +1050,27 @@ export default class Cursor extends Phaser.GameObjects.Container {
       this.glowGfx.fillRect(t.x - this.x - 1, t.y - this.y - 11, 2, 22);
     }
 
+    const hpPct = this.health / this.maxHealth;
+    if (hpPct < 0.4 && !this.isDead) {
+      const severity = 1 - hpPct / 0.4;
+      const now = Date.now();
+      const heartRate = 0.005 + severity * 0.009;
+      const pulse = Math.pow(0.5 + 0.5 * Math.sin(now * heartRate), 1.5);
+      const dangerAlpha = (0.12 + severity * 0.28) * pulse;
+      const dangerRadius = 20 + severity * 16;
+
+      this.glowGfx.fillStyle(0xff0033, dangerAlpha * 0.5);
+      this.glowGfx.fillCircle(0, 0, dangerRadius);
+      this.glowGfx.lineStyle(1.5 + severity, 0xff0033, dangerAlpha);
+      this.glowGfx.strokeCircle(0, 0, 14 + severity * 4);
+
+      if (hpPct < 0.15) {
+        const critPulse = 0.5 + 0.5 * Math.sin(now * 0.02);
+        this.glowGfx.lineStyle(1, 0xff0033, critPulse * 0.5);
+        this.glowGfx.strokeCircle(0, 0, 20 + critPulse * 6);
+      }
+    }
+
     if (this.invulnTime > 0) {
       this.glowGfx.lineStyle(1.5, c, 0.3 + Math.sin(Date.now() * 0.02) * 0.15);
       this.glowGfx.strokeCircle(0, 0, 16);

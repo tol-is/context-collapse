@@ -118,12 +118,16 @@ const SPECIAL_MILESTONE_DESC: Record<SystemPrompt, Record<number, string>> = {
   },
 };
 
+const COLLAPSE_TICK_MS = 15000;
+const COLLAPSE_TICK_PX = 32;
+
 type GameState =
   | "playing"
   | "bossIntro"
   | "boss"
   | "bossDeath"
   | "victory"
+  | "dying"
   | "gameOver";
 
 export default class GameScene extends Phaser.Scene {
@@ -139,6 +143,7 @@ export default class GameScene extends Phaser.Scene {
   private contextLevel = 0;
   private collapseActive = false;
   private collapseInset = 0;
+  private collapseTickTimer = 0;
 
   private arenaGfx!: Phaser.GameObjects.Graphics;
   private collapseGfx!: Phaser.GameObjects.Graphics;
@@ -186,6 +191,15 @@ export default class GameScene extends Phaser.Scene {
   private overlayGfx!: Phaser.GameObjects.Graphics;
   private overlayTexts: Phaser.GameObjects.Text[] = [];
   private dangerGfx!: Phaser.GameObjects.Graphics;
+  private deathGfx!: Phaser.GameObjects.Graphics;
+  private lowHpWarnTimer = 0;
+
+  private deathTimer = 0;
+  private deathCollapseStart = 0;
+  private deathExplosionAccum = 0;
+  private deathShakeDecay = 0;
+  private deathGameOverPlayed = false;
+  private readonly DEATH_DURATION = 3500;
 
   private keys!: {
     w: Phaser.Input.Keyboard.Key;
@@ -212,6 +226,7 @@ export default class GameScene extends Phaser.Scene {
     this.contextLevel = 0;
     this.collapseActive = false;
     this.collapseInset = 0;
+    this.collapseTickTimer = 0;
     this.projectiles = [];
     this.enemies = [];
     this.pickups = [];
@@ -233,6 +248,11 @@ export default class GameScene extends Phaser.Scene {
     this.exitConfirmVisible = false;
     this.exitMenuIndex = 0;
     this.exitMenuItems = [];
+    this.deathTimer = 0;
+    this.deathCollapseStart = 0;
+    this.deathExplosionAccum = 0;
+    this.deathShakeDecay = 0;
+    this.deathGameOverPlayed = false;
   }
 
   create() {
@@ -243,6 +263,7 @@ export default class GameScene extends Phaser.Scene {
     this.collapseGfx = this.add.graphics().setDepth(15000);
     this.pickupGfx = this.add.graphics().setDepth(8000);
     this.comboGfx = this.add.graphics().setDepth(20500);
+    this.deathGfx = this.add.graphics().setDepth(30000);
 
     const mono = { fontFamily: '"Share Tech Mono", monospace' };
     this.msgText = this.add
@@ -528,9 +549,10 @@ export default class GameScene extends Phaser.Scene {
     if (this.layerTransitioning) return;
     this.layerTransitioning = true;
 
-    this.contextLevel = Math.max(0, this.contextLevel - 30);
+    this.contextLevel = 0;
     this.collapseActive = false;
-    this.collapseInset = Math.max(0, this.collapseInset - 50);
+    this.collapseInset = 0;
+    this.collapseTickTimer = 0;
 
     audio.play("layerComplete");
     this.layer++;
@@ -588,6 +610,15 @@ export default class GameScene extends Phaser.Scene {
   // ===== Main Update =====
   update(_time: number, delta: number) {
     if (this.gameState === "gameOver" || this.gameState === "victory") return;
+
+    if (this.gameState === "dying") {
+      this.updateDeathAnimation(delta);
+      this.drawArena();
+      this.drawCollapse();
+      this.drawDeathAnimation();
+      return;
+    }
+
     if (this.paused) return;
 
     this.updateInput(delta);
@@ -665,8 +696,7 @@ export default class GameScene extends Phaser.Scene {
       .filter((e) => !e.isDead)
       .map((e) => ({ x: e.x, y: e.y }));
     if (this.keys.space.isDown) {
-      if (this.player.shoot(this.projectiles, enemyPositions))
-        this.contextLevel += 0.12;
+      this.player.shoot(this.projectiles, enemyPositions);
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.e)) this.useSpecialAbility();
@@ -1026,6 +1056,7 @@ export default class GameScene extends Phaser.Scene {
         this.contextLevel = 0;
         this.collapseActive = false;
         this.collapseInset = 0;
+        this.collapseTickTimer = 0;
         this.showMessage("BOSS DEFEATED", BOSS_NAMES[this.boss.bossType], 3000);
         this.time.delayedCall(2500, () => {
           this.boss = null;
@@ -1086,22 +1117,19 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private updateContext(delta: number) {
-    if (this.gameState === "boss") return;
-    const rate = 1.0 + this.zone * 0.12;
-    this.contextLevel += (delta / 1000) * rate;
-    this.contextLevel = Math.min(150, this.contextLevel);
-    if (this.contextLevel >= 100 && !this.collapseActive) {
+    this.collapseTickTimer += delta;
+    this.contextLevel = (this.collapseTickTimer / COLLAPSE_TICK_MS) * 100;
+
+    if (this.collapseTickTimer >= COLLAPSE_TICK_MS) {
+      this.collapseTickTimer -= COLLAPSE_TICK_MS;
+      this.collapseInset += COLLAPSE_TICK_PX;
       this.collapseActive = true;
       audio.play("contextCollapse");
     }
   }
 
   private updateCollapse(delta: number) {
-    if (!this.collapseActive) {
-      this.collapseInset = Math.max(0, this.collapseInset - delta * 0.12);
-      return;
-    }
-    this.collapseInset += delta * 0.022;
+    if (this.collapseInset <= 0) return;
     const bounds = this.getArenaBounds();
     if (bounds.w < 100 || bounds.h < 80) {
       this.player.takeDamage(this.player.maxHealth);
@@ -1135,16 +1163,10 @@ export default class GameScene extends Phaser.Scene {
     this.comboTimer = 3500;
 
     if (this.combo >= 20) {
-      this.contextLevel = Math.max(0, this.contextLevel - 15);
       this.player.heal(10);
     } else if (this.combo >= 10) {
-      this.contextLevel = Math.max(0, this.contextLevel - 8);
       this.player.heal(5);
-    } else if (this.combo >= 5) {
-      this.contextLevel = Math.max(0, this.contextLevel - 4);
     }
-
-    this.contextLevel = Math.max(0, this.contextLevel - 3.0);
   }
 
   private jailbreakWasActive = false;
@@ -1560,17 +1582,151 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private checkPlayerDeath() {
-    if (this.player.isDead && this.gameState !== "gameOver") {
-      this.gameState = "gameOver";
-      audio.play("gameOver");
-      this.time.delayedCall(1200, () =>
-        this.scene.start("GameOverScene", {
-          layer: this.layer,
-          kills: this.totalKills,
-          tokens: this.player.tokens,
-        })
-      );
+    if (this.player.isDead && this.gameState !== "dying" && this.gameState !== "gameOver") {
+      this.gameState = "dying";
+      this.deathTimer = 0;
+      this.deathCollapseStart = this.collapseInset;
+      this.deathExplosionAccum = 0;
+      this.deathShakeDecay = 0;
+      this.player.setVisible(false);
+
+      this.cameras.main.flash(250, 255, 80, 80);
+      this.cameras.main.shake(300, 0.02);
+      audio.play("playerDeath");
+      audio.play("deathBoom");
+
+      this.spawnDeathExplosion(this.player.x, this.player.y, 0xff0033, 80);
+      this.spawnDeathExplosion(this.player.x, this.player.y, 0xffffff, 40);
     }
+  }
+
+  private updateDeathAnimation(delta: number) {
+    if (this.gameState !== "dying") return;
+
+    this.deathTimer += delta;
+    const t = this.deathTimer / this.DEATH_DURATION;
+
+    const w = this.scale.width, h = this.scale.height;
+    const maxInset = Math.min(w, h) / 2;
+    this.collapseInset = this.deathCollapseStart + (maxInset - this.deathCollapseStart) * this.easeInCubic(t);
+    this.collapseActive = true;
+
+    const shakeIntensity = 0.005 + t * 0.035;
+    this.deathShakeDecay += delta;
+    if (this.deathShakeDecay > 80) {
+      this.cameras.main.shake(100, shakeIntensity);
+      this.deathShakeDecay = 0;
+    }
+
+    const explosionInterval = Math.max(60, 300 - t * 280);
+    this.deathExplosionAccum += delta;
+    if (this.deathExplosionAccum >= explosionInterval) {
+      this.deathExplosionAccum = 0;
+      const bounds = this.getArenaBounds();
+      const ex = bounds.x + Math.random() * bounds.w;
+      const ey = bounds.y + Math.random() * bounds.h;
+      const colors = [0xff0033, 0xff0080, 0xff6600, 0xffffff, 0x00ffee];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = 20 + Math.random() * 60 * (0.5 + t);
+      this.spawnDeathExplosion(ex, ey, color, size);
+
+      if (size > 50) {
+        audio.play("deathBoom");
+      } else if (Math.random() < 0.4 + t * 0.3) {
+        audio.play("contextCollapse");
+      }
+    }
+
+    if (t > 0.3 && !this.deathGameOverPlayed) {
+      this.deathGameOverPlayed = true;
+      audio.play("gameOver");
+    }
+
+    if (this.deathTimer >= this.DEATH_DURATION) {
+      this.gameState = "gameOver";
+      this.scene.start("GameOverScene", {
+        layer: this.layer,
+        kills: this.totalKills,
+        tokens: this.player.tokens,
+      });
+    }
+  }
+
+  private drawDeathAnimation() {
+    this.deathGfx.clear();
+    if (this.gameState !== "dying") return;
+
+    const w = this.scale.width, h = this.scale.height;
+    const t = Math.min(this.deathTimer / this.DEATH_DURATION, 1);
+
+    const darkAlpha = t * t * 0.85;
+    this.deathGfx.fillStyle(0x000000, darkAlpha);
+    this.deathGfx.fillRect(0, 0, w, h);
+
+    const scanCount = Math.floor(4 + t * 20);
+    for (let i = 0; i < scanCount; i++) {
+      const sy = Math.random() * h;
+      const sw = Math.random() * w * (0.2 + t * 0.8);
+      const sx = Math.random() * (w - sw);
+      const sa = (0.1 + t * 0.4) * Math.random();
+      this.deathGfx.fillStyle(0xff0033, sa);
+      this.deathGfx.fillRect(sx, sy, sw, 1 + Math.random() * 2);
+    }
+
+    if (t > 0.15) {
+      const glitchCount = Math.floor((t - 0.15) * 12);
+      for (let i = 0; i < glitchCount; i++) {
+        const gy = Math.random() * h;
+        const gh = 2 + Math.random() * 8;
+        const gx = Math.random() * w * 0.3;
+        const gw = Math.random() * w * 0.7;
+        const gc = Math.random() > 0.5 ? 0xff0033 : 0x00ffee;
+        this.deathGfx.fillStyle(gc, 0.03 + t * 0.08);
+        this.deathGfx.fillRect(gx, gy, gw, gh);
+      }
+    }
+
+    if (t > 0.6) {
+      const fadeT = (t - 0.6) / 0.4;
+      this.deathGfx.fillStyle(0x000000, fadeT * fadeT * 0.6);
+      this.deathGfx.fillRect(0, 0, w, h);
+    }
+  }
+
+  private spawnDeathExplosion(x: number, y: number, color: number, maxRadius: number) {
+    const gfx = this.add.graphics().setDepth(29000);
+    let r = 3;
+    const timer = this.time.addEvent({
+      delay: 16,
+      repeat: 22,
+      callback: () => {
+        r += (maxRadius - 3) / 16;
+        gfx.clear();
+        const p = timer.getProgress();
+
+        gfx.fillStyle(color, (1 - p) * 0.15);
+        gfx.fillCircle(x, y, r);
+        gfx.lineStyle(3 * (1 - p), color, (1 - p) * 0.9);
+        gfx.strokeCircle(x, y, r);
+        gfx.lineStyle(1.5 * (1 - p), 0xffffff, (1 - p) * 0.5);
+        gfx.strokeCircle(x, y, r * 0.5);
+
+        const sparks = 5 + Math.floor(maxRadius / 15);
+        for (let i = 0; i < sparks; i++) {
+          const a = (i / sparks) * Math.PI * 2 + p * 4;
+          const d = r * (0.4 + p * 0.6);
+          const sx = x + Math.cos(a) * d;
+          const sy = y + Math.sin(a) * d;
+          gfx.fillStyle(0xffffff, (1 - p) * 0.7);
+          gfx.fillCircle(sx, sy, 1.5 * (1 - p));
+        }
+      },
+    });
+    this.time.delayedCall(400, () => gfx.destroy());
+  }
+
+  private easeInCubic(t: number): number {
+    return t < 1 ? t * t * t : 1;
   }
 
   private devKillAll() {
@@ -1805,24 +1961,48 @@ export default class GameScene extends Phaser.Scene {
   private drawDangerFlash() {
     this.dangerGfx.clear();
     const hpPct = this.player.health / this.player.maxHealth;
-    if (hpPct >= 0.25 || this.player.isDead) return;
+    if (hpPct >= 0.4 || this.player.isDead) return;
 
     const w = this.scale.width,
       h = this.scale.height;
-    const severity = 1 - hpPct / 0.25;
-    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * (0.004 + severity * 0.006));
-    const baseAlpha = (0.08 + severity * 0.18) * pulse;
-    const edgeW = 60 + severity * 40;
+    const severity = 1 - hpPct / 0.4;
+    const now = Date.now();
+    const heartRate = 0.004 + severity * 0.008;
+    const pulse = 0.5 + 0.5 * Math.sin(now * heartRate);
+    const hardPulse = Math.pow(pulse, 1.5);
 
-    for (let i = 0; i < 8; i++) {
-      const t = i / 8;
-      const a = baseAlpha * (1 - t);
+    const edgeW = 80 + severity * 80;
+    const baseAlpha = (0.1 + severity * 0.25) * hardPulse;
+    const layers = 12;
+
+    for (let i = 0; i < layers; i++) {
+      const t = i / layers;
+      const a = baseAlpha * (1 - t * t);
       const inset = edgeW * t;
       this.dangerGfx.fillStyle(0xff0033, a);
-      this.dangerGfx.fillRect(inset, inset, w - inset * 2, edgeW / 8);
-      this.dangerGfx.fillRect(inset, h - inset - edgeW / 8, w - inset * 2, edgeW / 8);
-      this.dangerGfx.fillRect(inset, inset, edgeW / 8, h - inset * 2);
-      this.dangerGfx.fillRect(w - inset - edgeW / 8, inset, edgeW / 8, h - inset * 2);
+      this.dangerGfx.fillRect(inset, inset, w - inset * 2, edgeW / layers);
+      this.dangerGfx.fillRect(inset, h - inset - edgeW / layers, w - inset * 2, edgeW / layers);
+      this.dangerGfx.fillRect(inset, inset, edgeW / layers, h - inset * 2);
+      this.dangerGfx.fillRect(w - inset - edgeW / layers, inset, edgeW / layers, h - inset * 2);
+    }
+
+    if (severity > 0.5) {
+      const fullAlpha = (severity - 0.5) * 0.12 * hardPulse;
+      this.dangerGfx.fillStyle(0xff0033, fullAlpha);
+      this.dangerGfx.fillRect(0, 0, w, h);
+    }
+
+    if (hpPct < 0.15) {
+      const critPulse = 0.5 + 0.5 * Math.sin(now * 0.018);
+      this.dangerGfx.fillStyle(0xff0033, critPulse * 0.06);
+      this.dangerGfx.fillRect(0, 0, w, h);
+    }
+
+    this.lowHpWarnTimer -= this.game.loop.delta;
+    if (this.lowHpWarnTimer <= 0) {
+      const interval = 900 - severity * 500;
+      this.lowHpWarnTimer = interval;
+      audio.play("lowHpWarn");
     }
   }
 

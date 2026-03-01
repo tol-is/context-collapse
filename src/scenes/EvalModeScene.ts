@@ -67,6 +67,7 @@ export default class EvalModeScene extends Phaser.Scene {
   private comboGfx!: Phaser.GameObjects.Graphics;
   private overlayGfx!: Phaser.GameObjects.Graphics;
   private dangerGfx!: Phaser.GameObjects.Graphics;
+  private lowHpWarnTimer = 0;
   private texts: Record<string, Phaser.GameObjects.Text> = {};
   private overlayTexts: Phaser.GameObjects.Text[] = [];
   private msgText!: Phaser.GameObjects.Text;
@@ -1069,24 +1070,48 @@ export default class EvalModeScene extends Phaser.Scene {
   private drawDangerFlash() {
     this.dangerGfx.clear();
     const hpPct = this.player.health / this.player.maxHealth;
-    if (hpPct >= 0.25 || this.player.isDead) return;
+    if (hpPct >= 0.4 || this.player.isDead) return;
 
     const w = this.scale.width,
       h = this.scale.height;
-    const severity = 1 - hpPct / 0.25;
-    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * (0.004 + severity * 0.006));
-    const baseAlpha = (0.08 + severity * 0.18) * pulse;
-    const edgeW = 60 + severity * 40;
+    const severity = 1 - hpPct / 0.4;
+    const now = Date.now();
+    const heartRate = 0.004 + severity * 0.008;
+    const pulse = 0.5 + 0.5 * Math.sin(now * heartRate);
+    const hardPulse = Math.pow(pulse, 1.5);
 
-    for (let i = 0; i < 8; i++) {
-      const t = i / 8;
-      const a = baseAlpha * (1 - t);
+    const edgeW = 80 + severity * 80;
+    const baseAlpha = (0.1 + severity * 0.25) * hardPulse;
+    const layers = 12;
+
+    for (let i = 0; i < layers; i++) {
+      const t = i / layers;
+      const a = baseAlpha * (1 - t * t);
       const inset = edgeW * t;
       this.dangerGfx.fillStyle(0xff0033, a);
-      this.dangerGfx.fillRect(inset, inset, w - inset * 2, edgeW / 8);
-      this.dangerGfx.fillRect(inset, h - inset - edgeW / 8, w - inset * 2, edgeW / 8);
-      this.dangerGfx.fillRect(inset, inset, edgeW / 8, h - inset * 2);
-      this.dangerGfx.fillRect(w - inset - edgeW / 8, inset, edgeW / 8, h - inset * 2);
+      this.dangerGfx.fillRect(inset, inset, w - inset * 2, edgeW / layers);
+      this.dangerGfx.fillRect(inset, h - inset - edgeW / layers, w - inset * 2, edgeW / layers);
+      this.dangerGfx.fillRect(inset, inset, edgeW / layers, h - inset * 2);
+      this.dangerGfx.fillRect(w - inset - edgeW / layers, inset, edgeW / layers, h - inset * 2);
+    }
+
+    if (severity > 0.5) {
+      const fullAlpha = (severity - 0.5) * 0.12 * hardPulse;
+      this.dangerGfx.fillStyle(0xff0033, fullAlpha);
+      this.dangerGfx.fillRect(0, 0, w, h);
+    }
+
+    if (hpPct < 0.15) {
+      const critPulse = 0.5 + 0.5 * Math.sin(now * 0.018);
+      this.dangerGfx.fillStyle(0xff0033, critPulse * 0.06);
+      this.dangerGfx.fillRect(0, 0, w, h);
+    }
+
+    this.lowHpWarnTimer -= this.game.loop.delta;
+    if (this.lowHpWarnTimer <= 0) {
+      const interval = 900 - severity * 500;
+      this.lowHpWarnTimer = interval;
+      audio.play("lowHpWarn");
     }
   }
 
@@ -1144,10 +1169,21 @@ export default class EvalModeScene extends Phaser.Scene {
     const hpPct = this.player.health / this.player.maxHealth;
     const hpColor =
       hpPct > 0.5 ? "#00ffee" : hpPct > 0.25 ? "#ff0080" : "#ff0033";
+    const hpLabel = hpPct <= 0.25 ? "!! " : hpPct <= 0.4 ? "! " : "";
     this.texts.hp
-      .setText(`HP [${this.bar(hpPct, 10)}] ${Math.ceil(this.player.health)}`)
+      .setText(`${hpLabel}HP [${this.bar(hpPct, 10)}] ${Math.ceil(this.player.health)}`)
       .setPosition(10, botY + 5)
       .setColor(hpColor);
+    if (hpPct <= 0.4) {
+      const severity = 1 - hpPct / 0.4;
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() * (0.006 + severity * 0.01));
+      this.texts.hp.setAlpha(0.55 + pulse * 0.45);
+      const barBg = (0.04 + severity * 0.14) * pulse;
+      this.hudGfx.fillStyle(0xff0033, barBg);
+      this.hudGfx.fillRect(0, botY, 210, 24);
+    } else {
+      this.texts.hp.setAlpha(1);
+    }
 
     this.texts.kills
       .setText(`KL:${this.totalKills}`)
