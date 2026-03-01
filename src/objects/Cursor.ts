@@ -1012,7 +1012,21 @@ export default class Cursor extends Phaser.GameObjects.Container {
       }
     }
 
-    audio.play("shoot");
+    const sfxMap: Record<string, Parameters<typeof audio.play>[0]> = {
+      spread: "shootSpread",
+      piercing: "shootPiercing",
+      rapid: "shootRapid",
+      homing: "shootHoming",
+      chain: "shootChain",
+      nova: "shootNova",
+      vortex: "shootVortex",
+      orbital: "shootOrbital",
+      railgun: "shootRailgun",
+      shockwave: "shootShockwave",
+      explosive: "shootExplosive",
+      laser: "shootLaser",
+    };
+    audio.play(mod && sfxMap[mod] ? sfxMap[mod] : "shoot");
     return true;
   }
 
