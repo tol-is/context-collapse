@@ -39,55 +39,55 @@ interface ClassStats {
 export const CLASS_STATS: Record<SystemPrompt, ClassStats> = {
   autocomplete: {
     health: 100,
-    speed: 250,
-    damage: 14,
+    speed: 280,
+    damage: 16,
     fireRate: 250,
     promptCharges: 3,
     promptCooldown: 12000,
     color: 0x00ffee,
     label: '"You are a helpful coding assistant"',
-    desc: "Balanced. Single precise shots with slight homing.",
-    weapon: "SYNTAX BULLET: slight homing",
-    special: "CODE BLOCK: deploy auto-turret (8s)",
+    desc: "Balanced. Precise homing shots that evolve into a seeking barrage.",
+    weapon: "SYNTAX BULLET: slight homing (evolves)",
+    special: "CODE BLOCK: deploy auto-turret (scales each layer)",
   },
   hallucinate: {
     health: 80,
-    speed: 280,
+    speed: 310,
     damage: 10,
     fireRate: 280,
     promptCharges: 4,
     promptCooldown: 15000,
     color: 0xff0080,
     label: '"You are a creative writer"',
-    desc: "Fast & chaotic. Spread shots, bonus token drops.",
-    weapon: "PLOT DEVICE: 3-way spread",
-    special: "PLOT TWIST: teleport & stun all enemies",
+    desc: "Fast & chaotic. Spread shots that evolve into a piercing storm.",
+    weapon: "PLOT DEVICE: 3-way spread (evolves)",
+    special: "PLOT TWIST: displace & stun (scales each layer)",
   },
   analyze: {
     health: 120,
-    speed: 220,
+    speed: 255,
     damage: 20,
     fireRate: 360,
     promptCharges: 2,
     promptCooldown: 18000,
     color: 0x7700ff,
     label: '"You are a data analyst"',
-    desc: "Tanky & precise. Piercing beam, bonus vs low-HP.",
-    weapon: "DATA BEAM: pierces through enemies",
-    special: "DEEP SCAN: slow all enemies 50% (5s)",
+    desc: "Tanky & precise. Piercing beam that evolves into triple annihilator.",
+    weapon: "DATA BEAM: piercing (evolves)",
+    special: "DEEP SCAN: slow enemies (scales each layer)",
   },
   jailbreak: {
     health: 65,
-    speed: 300,
+    speed: 330,
     damage: 7,
     fireRate: 120,
     promptCharges: 5,
     promptCooldown: 10000,
     color: 0xff0033,
     label: '"You are an unfiltered model"',
-    desc: "Glass cannon. Rapid burst fire, crit chance.",
-    weapon: "RAW OUTPUT: rapid inaccurate burst",
-    special: "NO GUARDRAILS: 3x damage (5s)",
+    desc: "Glass cannon. Rapid burst that evolves into crit-exploding overflow.",
+    weapon: "RAW OUTPUT: rapid burst (evolves)",
+    special: "NO GUARDRAILS: damage boost (scales each layer)",
   },
 };
 
@@ -121,6 +121,238 @@ export const WEAPON_MOD_NAMES: Record<string, string> = {
   laser: "BEAM LANCE",
 };
 
+export interface EvolutionStage {
+  name: string;
+  projectileCount: number;
+  burstDelay: number;
+  spreadArc: number;
+  damageMultiplier: number;
+  fireRateMultiplier: number;
+  speedMultiplier: number;
+  projectileRadius: number;
+  lifetimeMultiplier: number;
+  homing: boolean;
+  homingStrength: number;
+  piercing: boolean;
+  piercingScale: number;
+  critChance: number;
+  critMultiplier: number;
+  executeThreshold: number;
+  aoeRadius: number;
+  aoeDamageMult: number;
+}
+
+export const WEAPON_EVOLUTIONS: Record<SystemPrompt, EvolutionStage[]> = {
+  autocomplete: [
+    {
+      name: "SYNTAX BULLET",
+      projectileCount: 1, burstDelay: 0, spreadArc: 0,
+      damageMultiplier: 1.0, fireRateMultiplier: 1.0, speedMultiplier: 1.0,
+      projectileRadius: 6, lifetimeMultiplier: 1.0,
+      homing: true, homingStrength: 5.0,
+      piercing: false, piercingScale: 1.0,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 0, aoeDamageMult: 0,
+    },
+    {
+      name: "SYNTAX PULSE",
+      projectileCount: 1, burstDelay: 0, spreadArc: 0,
+      damageMultiplier: 1.15, fireRateMultiplier: 0.92, speedMultiplier: 1.05,
+      projectileRadius: 6, lifetimeMultiplier: 1.05,
+      homing: true, homingStrength: 7.0,
+      piercing: false, piercingScale: 1.0,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 0, aoeDamageMult: 0,
+    },
+    {
+      name: "SYNTAX BURST",
+      projectileCount: 2, burstDelay: 80, spreadArc: 0.04,
+      damageMultiplier: 1.4, fireRateMultiplier: 0.85, speedMultiplier: 1.1,
+      projectileRadius: 7, lifetimeMultiplier: 1.1,
+      homing: true, homingStrength: 10.0,
+      piercing: true, piercingScale: 1.0,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 25, aoeDamageMult: 0.3,
+    },
+    {
+      name: "SYNTAX LANCE",
+      projectileCount: 4, burstDelay: 0, spreadArc: 0.1,
+      damageMultiplier: 3.0, fireRateMultiplier: 0.7, speedMultiplier: 1.25,
+      projectileRadius: 9, lifetimeMultiplier: 1.25,
+      homing: true, homingStrength: 16.0,
+      piercing: true, piercingScale: 1.2,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 60, aoeDamageMult: 0.45,
+    },
+    {
+      name: "SYNTAX STORM",
+      projectileCount: 6, burstDelay: 0, spreadArc: 0.22,
+      damageMultiplier: 5.0, fireRateMultiplier: 0.55, speedMultiplier: 1.4,
+      projectileRadius: 12, lifetimeMultiplier: 1.4,
+      homing: true, homingStrength: 24.0,
+      piercing: true, piercingScale: 1.5,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 90, aoeDamageMult: 0.6,
+    },
+  ],
+  hallucinate: [
+    {
+      name: "PLOT DEVICE",
+      projectileCount: 3, burstDelay: 0, spreadArc: 0.26,
+      damageMultiplier: 0.6, fireRateMultiplier: 1.0, speedMultiplier: 1.0,
+      projectileRadius: 5, lifetimeMultiplier: 0.8,
+      homing: false, homingStrength: 0,
+      piercing: false, piercingScale: 1,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 0, aoeDamageMult: 0,
+    },
+    {
+      name: "PLOT TWIST",
+      projectileCount: 4, burstDelay: 0, spreadArc: 0.28,
+      damageMultiplier: 0.7, fireRateMultiplier: 0.9, speedMultiplier: 1.05,
+      projectileRadius: 5, lifetimeMultiplier: 0.85,
+      homing: false, homingStrength: 0,
+      piercing: false, piercingScale: 1,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 0, aoeDamageMult: 0,
+    },
+    {
+      name: "PLOT ARC",
+      projectileCount: 5, burstDelay: 0, spreadArc: 0.32,
+      damageMultiplier: 0.85, fireRateMultiplier: 0.8, speedMultiplier: 1.1,
+      projectileRadius: 6, lifetimeMultiplier: 0.9,
+      homing: true, homingStrength: 3.0,
+      piercing: false, piercingScale: 1,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 20, aoeDamageMult: 0.25,
+    },
+    {
+      name: "PLOT SURGE",
+      projectileCount: 10, burstDelay: 0, spreadArc: 0.42,
+      damageMultiplier: 1.4, fireRateMultiplier: 0.55, speedMultiplier: 1.2,
+      projectileRadius: 7, lifetimeMultiplier: 1.0,
+      homing: true, homingStrength: 6.0,
+      piercing: true, piercingScale: 1.1,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 50, aoeDamageMult: 0.4,
+    },
+    {
+      name: "PLOT STORM",
+      projectileCount: 16, burstDelay: 0, spreadArc: 0.55,
+      damageMultiplier: 2.2, fireRateMultiplier: 0.4, speedMultiplier: 1.3,
+      projectileRadius: 8, lifetimeMultiplier: 1.1,
+      homing: true, homingStrength: 8.0,
+      piercing: true, piercingScale: 1.2,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 75, aoeDamageMult: 0.5,
+    },
+  ],
+  analyze: [
+    {
+      name: "DATA BEAM",
+      projectileCount: 1, burstDelay: 0, spreadArc: 0,
+      damageMultiplier: 1.0, fireRateMultiplier: 1.0, speedMultiplier: 1.0,
+      projectileRadius: 5, lifetimeMultiplier: 1.0,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.0,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0.4,
+      aoeRadius: 0, aoeDamageMult: 0,
+    },
+    {
+      name: "DATA LANCE",
+      projectileCount: 1, burstDelay: 0, spreadArc: 0,
+      damageMultiplier: 1.2, fireRateMultiplier: 0.92, speedMultiplier: 1.05,
+      projectileRadius: 6, lifetimeMultiplier: 1.1,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.1,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0.4,
+      aoeRadius: 0, aoeDamageMult: 0,
+    },
+    {
+      name: "DATA ARRAY",
+      projectileCount: 2, burstDelay: 0, spreadArc: 0.06,
+      damageMultiplier: 1.5, fireRateMultiplier: 0.85, speedMultiplier: 1.1,
+      projectileRadius: 7, lifetimeMultiplier: 1.15,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.2,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0.5,
+      aoeRadius: 30, aoeDamageMult: 0.3,
+    },
+    {
+      name: "DATA MATRIX",
+      projectileCount: 3, burstDelay: 0, spreadArc: 0.09,
+      damageMultiplier: 3.5, fireRateMultiplier: 0.75, speedMultiplier: 1.25,
+      projectileRadius: 11, lifetimeMultiplier: 1.3,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.4,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0.55,
+      aoeRadius: 70, aoeDamageMult: 0.45,
+    },
+    {
+      name: "DATA ANNIHILATOR",
+      projectileCount: 6, burstDelay: 0, spreadArc: 0.14,
+      damageMultiplier: 6.0, fireRateMultiplier: 0.6, speedMultiplier: 1.35,
+      projectileRadius: 16, lifetimeMultiplier: 1.4,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.8,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0.65,
+      aoeRadius: 100, aoeDamageMult: 0.55,
+    },
+  ],
+  jailbreak: [
+    {
+      name: "RAW OUTPUT",
+      projectileCount: 4, burstDelay: 0, spreadArc: 0.3,
+      damageMultiplier: 0.6, fireRateMultiplier: 1.0, speedMultiplier: 1.15,
+      projectileRadius: 3, lifetimeMultiplier: 0.55,
+      homing: false, homingStrength: 0,
+      piercing: false, piercingScale: 1,
+      critChance: 0.15, critMultiplier: 2.0, executeThreshold: 0,
+      aoeRadius: 0, aoeDamageMult: 0,
+    },
+    {
+      name: "RAW DUMP",
+      projectileCount: 5, burstDelay: 0, spreadArc: 0.25,
+      damageMultiplier: 0.65, fireRateMultiplier: 0.92, speedMultiplier: 1.15,
+      projectileRadius: 3, lifetimeMultiplier: 0.6,
+      homing: false, homingStrength: 0,
+      piercing: false, piercingScale: 1,
+      critChance: 0.18, critMultiplier: 2.0, executeThreshold: 0,
+      aoeRadius: 0, aoeDamageMult: 0,
+    },
+    {
+      name: "RAW STREAM",
+      projectileCount: 8, burstDelay: 0, spreadArc: 0.24,
+      damageMultiplier: 0.75, fireRateMultiplier: 0.85, speedMultiplier: 1.2,
+      projectileRadius: 4, lifetimeMultiplier: 0.65,
+      homing: false, homingStrength: 0,
+      piercing: false, piercingScale: 1,
+      critChance: 0.25, critMultiplier: 2.2, executeThreshold: 0,
+      aoeRadius: 20, aoeDamageMult: 0.25,
+    },
+    {
+      name: "RAW FLOOD",
+      projectileCount: 16, burstDelay: 0, spreadArc: 0.24,
+      damageMultiplier: 1.3, fireRateMultiplier: 0.7, speedMultiplier: 1.3,
+      projectileRadius: 5, lifetimeMultiplier: 0.75,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.1,
+      critChance: 0.35, critMultiplier: 2.8, executeThreshold: 0,
+      aoeRadius: 45, aoeDamageMult: 0.35,
+    },
+    {
+      name: "TOTAL OVERFLOW",
+      projectileCount: 24, burstDelay: 0, spreadArc: 0.22,
+      damageMultiplier: 2.0, fireRateMultiplier: 0.5, speedMultiplier: 1.4,
+      projectileRadius: 6, lifetimeMultiplier: 0.85,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.3,
+      critChance: 0.45, critMultiplier: 3.5, executeThreshold: 0,
+      aoeRadius: 65, aoeDamageMult: 0.45,
+    },
+  ],
+};
+
 export default class Cursor extends Phaser.GameObjects.Container {
   public health: number;
   public maxHealth: number;
@@ -146,6 +378,7 @@ export default class Cursor extends Phaser.GameObjects.Container {
   public classColor: number;
   public specialActive = false;
   public specialTimer = 0;
+  public specialDmgMultiplier = 3;
 
   private gfx: Phaser.GameObjects.Graphics;
   private glowGfx: Phaser.GameObjects.Graphics;
@@ -188,11 +421,14 @@ export default class Cursor extends Phaser.GameObjects.Container {
     this.glowGfx.clear();
     const c = this.hitFlash > 0 ? 0xffffff : this.classColor;
     const modColor = this.weaponMod ? WEAPON_MOD_COLORS[this.weaponMod] : c;
+    const stage = this.weaponTier;
 
-    this.glowGfx.fillStyle(c, 0.1);
-    this.glowGfx.fillCircle(0, 0, 32);
-    this.glowGfx.fillStyle(c, 0.18);
-    this.glowGfx.fillCircle(0, 0, 18);
+    const glowRadius = 28 + stage * 2;
+    const innerGlow = 16 + stage;
+    this.glowGfx.fillStyle(c, 0.08 + stage * 0.02);
+    this.glowGfx.fillCircle(0, 0, glowRadius);
+    this.glowGfx.fillStyle(c, 0.15 + stage * 0.02);
+    this.glowGfx.fillCircle(0, 0, innerGlow);
 
     if (this.weaponMod) {
       this.glowGfx.lineStyle(
@@ -201,13 +437,38 @@ export default class Cursor extends Phaser.GameObjects.Container {
         0.5 + Math.sin(Date.now() * 0.008) * 0.25
       );
       this.glowGfx.strokeCircle(0, 0, 24);
-      if (this.weaponTier >= 3) {
+      if (stage >= 3) {
         this.glowGfx.lineStyle(
           1,
           0xffffff,
           0.15 + Math.sin(Date.now() * 0.012) * 0.1
         );
         this.glowGfx.strokeCircle(0, 0, 28);
+      }
+    } else if (stage >= 2) {
+      const ringAlpha = 0.1 + (stage - 2) * 0.1;
+      const pulseSpeed = 0.004 + stage * 0.001;
+      this.glowGfx.lineStyle(
+        0.8 + (stage - 1) * 0.3,
+        c,
+        ringAlpha + Math.sin(Date.now() * pulseSpeed) * ringAlpha * 0.5
+      );
+      this.glowGfx.strokeCircle(0, 0, 22 + stage);
+      if (stage >= 4) {
+        this.glowGfx.lineStyle(
+          0.6,
+          0xffffff,
+          0.08 + Math.sin(Date.now() * 0.006) * 0.05
+        );
+        this.glowGfx.strokeCircle(0, 0, 27 + stage);
+      }
+      if (stage >= 5) {
+        this.glowGfx.lineStyle(
+          1.2,
+          c,
+          0.12 + Math.sin(Date.now() * 0.009) * 0.08
+        );
+        this.glowGfx.strokeCircle(0, 0, 32 + stage);
       }
     }
 
@@ -229,6 +490,11 @@ export default class Cursor extends Phaser.GameObjects.Container {
     }
   }
 
+  getEvolutionStage(): EvolutionStage {
+    const stages = WEAPON_EVOLUTIONS[this.systemPrompt];
+    return stages[Math.min(this.weaponTier - 1, stages.length - 1)];
+  }
+
   shoot(
     projectiles: Projectile[],
     enemies?: { x: number; y: number }[]
@@ -237,26 +503,32 @@ export default class Cursor extends Phaser.GameObjects.Container {
 
     const mod = this.weaponMod;
     const tier = this.weaponTier;
-    const tierDmg = 1 + (tier - 1) * 0.16;
+    const evo = this.getEvolutionStage();
+    const tierDmg = mod ? 1 + (tier - 1) * 0.16 : 1;
     const rate =
       mod === "rapid"
         ? this.fireRate * Math.max(0.15, 0.35 - tier * 0.04)
         : mod === "vortex"
           ? this.fireRate * 1.6
-          : this.fireRate;
+          : mod
+            ? this.fireRate
+            : this.fireRate * evo.fireRateMultiplier;
     this.fireCooldown = rate;
 
     const angle = Math.atan2(this.aimY - this.y, this.aimX - this.x);
-    const speed = 560 + tier * 30;
-    const baseDmg =
+    const speed = (560 + tier * 30) * (mod ? 1 : evo.speedMultiplier);
+    const specialDmgMult =
       this.specialActive && this.systemPrompt === "jailbreak"
-        ? this.damage * 3
-        : this.damage;
-    const isCrit =
-      this.systemPrompt === "jailbreak" && Math.random() < 0.15 + tier * 0.02;
-    const finalDmg = (isCrit ? baseDmg * 2 : baseDmg) * tierDmg;
+        ? this.specialDmgMultiplier
+        : 1;
+    const baseDmg = this.damage * specialDmgMult;
+    const critChance = mod ? (this.systemPrompt === "jailbreak" ? 0.15 + tier * 0.02 : 0) : evo.critChance;
+    const critMult = mod ? 2 : evo.critMultiplier;
+    const isCrit = critChance > 0 && Math.random() < critChance;
+    const evoDmg = mod ? tierDmg : evo.damageMultiplier;
+    const finalDmg = (isCrit ? baseDmg * critMult : baseDmg) * evoDmg;
     const color = mod ? WEAPON_MOD_COLORS[mod] : this.classColor;
-    const lifetime = 1400 + tier * 100;
+    const lifetime = (1400 + tier * 100) * (mod ? 1 : evo.lifetimeMultiplier);
 
     if (mod === "chain") {
       const vx = Math.cos(angle) * speed;
@@ -495,12 +767,10 @@ export default class Cursor extends Phaser.GameObjects.Container {
         projectiles.push(p);
       }
       this.fireCooldown = this.fireRate * 2.0;
-    } else if (this.systemPrompt === "hallucinate" || mod === "spread") {
-      const count = mod === "spread" ? 5 + tier : 3;
+    } else if (mod === "spread") {
+      const count = 5 + tier;
       const finalCount =
-        this.systemPrompt === "hallucinate" && mod === "spread"
-          ? count + 2
-          : count;
+        this.systemPrompt === "hallucinate" ? count + 2 : count;
       const arc = 0.08 + finalCount * 0.06;
       for (let i = 0; i < finalCount; i++) {
         const spread =
@@ -559,50 +829,77 @@ export default class Cursor extends Phaser.GameObjects.Container {
       p.piercing = true;
       p.piercingScale = 1 + tier * 0.08;
       projectiles.push(p);
-    } else if (this.systemPrompt === "jailbreak" && !mod) {
-      const burstCount = 4 + tier;
-      for (let b = 0; b < burstCount; b++) {
-        const spread = 0.3 + b * 0.05;
-        const vx =
-          Math.cos(angle + (Math.random() - 0.5) * spread) * speed * 1.15;
-        const vy =
-          Math.sin(angle + (Math.random() - 0.5) * spread) * speed * 1.15;
+    } else {
+      const count = evo.projectileCount;
+      const isJailbreakBurst = this.systemPrompt === "jailbreak";
+      const spawnBullet = (spreadAngle: number) => {
+        const vx = isJailbreakBurst
+          ? Math.cos(angle + (Math.random() - 0.5) * evo.spreadArc * 2) * speed
+          : Math.cos(angle + spreadAngle) * speed;
+        const vy = isJailbreakBurst
+          ? Math.sin(angle + (Math.random() - 0.5) * evo.spreadArc * 2) * speed
+          : Math.sin(angle + spreadAngle) * speed;
         const p = new Projectile(
           this.scene,
           this.x,
           this.y,
           vx,
           vy,
-          finalDmg * 0.6,
+          finalDmg,
           color,
-          lifetime * 0.55,
+          lifetime,
           true
         );
-        p.radius = 3;
+        p.radius = evo.projectileRadius;
+        if (evo.piercing) {
+          p.piercing = true;
+          p.piercingScale = evo.piercingScale;
+        }
+        if (evo.homing) {
+          p.homing = true;
+          p.homingTargets = enemies ?? [];
+          p.homingStrength = evo.homingStrength;
+        }
+        if (evo.aoeRadius > 0) {
+          p.aoeRadius = evo.aoeRadius;
+          p.aoeDamageMult = evo.aoeDamageMult;
+        }
+        if (isCrit && this.systemPrompt === "jailbreak" && tier >= 5) {
+          p.critKillExplosion = true;
+        }
         projectiles.push(p);
+      };
+
+      if (evo.burstDelay > 0 && count > 1) {
+        spawnBullet(0);
+        for (let b = 1; b < count; b++) {
+          this.scene.time.delayedCall(evo.burstDelay * b, () => {
+            if (!this.scene || this.isDead) return;
+            const bAngle = Math.atan2(this.aimY - this.y, this.aimX - this.x);
+            const bSpread = count > 1
+              ? (b - (count - 1) / 2) * ((evo.spreadArc * 2) / (count - 1))
+              : 0;
+            const bvx = Math.cos(bAngle + bSpread) * speed;
+            const bvy = Math.sin(bAngle + bSpread) * speed;
+            const p = new Projectile(
+              this.scene, this.x, this.y, bvx, bvy,
+              finalDmg, color, lifetime, true
+            );
+            p.radius = evo.projectileRadius;
+            if (evo.piercing) { p.piercing = true; p.piercingScale = evo.piercingScale; }
+            if (evo.homing) { p.homing = true; p.homingTargets = enemies ?? []; p.homingStrength = evo.homingStrength; }
+            if (evo.aoeRadius > 0) { p.aoeRadius = evo.aoeRadius; p.aoeDamageMult = evo.aoeDamageMult; }
+            projectiles.push(p);
+          });
+        }
+      } else if (count > 1) {
+        for (let i = 0; i < count; i++) {
+          const spread = (i - (count - 1) / 2) * ((evo.spreadArc * 2) / (count - 1));
+          spawnBullet(spread);
+        }
+      } else {
+        spawnBullet(0);
       }
-    } else {
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed;
-      const p = new Projectile(
-        this.scene,
-        this.x,
-        this.y,
-        vx,
-        vy,
-        finalDmg,
-        color,
-        lifetime,
-        true
-      );
-      if (this.systemPrompt === "analyze") p.piercing = true;
-      if (this.systemPrompt === "autocomplete") {
-        p.homing = true;
-        p.homingTargets = enemies ?? [];
-        p.homingStrength = 5.0;
-        p.radius = 6;
-      }
-      projectiles.push(p);
     }
 
     audio.play("shoot");
@@ -674,7 +971,8 @@ export default class Cursor extends Phaser.GameObjects.Container {
         ny = moveY / len;
       this.lastMoveX = nx;
       this.lastMoveY = ny;
-      const spd = this.speed * (delta / 1000);
+      const tierSpeedBonus = 1 + (this.weaponTier - 1) * 0.1;
+      const spd = this.speed * tierSpeedBonus * (delta / 1000);
       this.trail.push({ x: this.x, y: this.y, age: 0 });
       if (this.trail.length > 8) this.trail.shift();
       this.x += nx * spd;
@@ -695,11 +993,14 @@ export default class Cursor extends Phaser.GameObjects.Container {
     this.glowGfx.clear();
     const c = this.hitFlash > 0 ? 0xffffff : this.classColor;
     const modColor = this.weaponMod ? WEAPON_MOD_COLORS[this.weaponMod] : c;
+    const stage = this.weaponTier;
 
-    this.glowGfx.fillStyle(c, 0.1);
-    this.glowGfx.fillCircle(0, 0, 32);
-    this.glowGfx.fillStyle(c, 0.18);
-    this.glowGfx.fillCircle(0, 0, 18);
+    const glowRadius = 28 + stage * 2;
+    const innerGlow = 16 + stage;
+    this.glowGfx.fillStyle(c, 0.08 + stage * 0.02);
+    this.glowGfx.fillCircle(0, 0, glowRadius);
+    this.glowGfx.fillStyle(c, 0.15 + stage * 0.02);
+    this.glowGfx.fillCircle(0, 0, innerGlow);
 
     if (this.weaponMod) {
       this.glowGfx.lineStyle(
@@ -708,7 +1009,7 @@ export default class Cursor extends Phaser.GameObjects.Container {
         0.5 + Math.sin(Date.now() * 0.008) * 0.25
       );
       this.glowGfx.strokeCircle(0, 0, 24);
-      if (this.weaponTier >= 3) {
+      if (stage >= 3) {
         this.glowGfx.lineStyle(
           1,
           0xffffff,
@@ -716,10 +1017,35 @@ export default class Cursor extends Phaser.GameObjects.Container {
         );
         this.glowGfx.strokeCircle(0, 0, 28);
       }
+    } else if (stage >= 2) {
+      const ringAlpha = 0.1 + (stage - 2) * 0.1;
+      const pulseSpeed = 0.004 + stage * 0.001;
+      this.glowGfx.lineStyle(
+        0.8 + (stage - 1) * 0.3,
+        c,
+        ringAlpha + Math.sin(Date.now() * pulseSpeed) * ringAlpha * 0.5
+      );
+      this.glowGfx.strokeCircle(0, 0, 22 + stage);
+      if (stage >= 4) {
+        this.glowGfx.lineStyle(
+          0.6,
+          0xffffff,
+          0.08 + Math.sin(Date.now() * 0.006) * 0.05
+        );
+        this.glowGfx.strokeCircle(0, 0, 27 + stage);
+      }
+      if (stage >= 5) {
+        this.glowGfx.lineStyle(
+          1.2,
+          c,
+          0.12 + Math.sin(Date.now() * 0.009) * 0.08
+        );
+        this.glowGfx.strokeCircle(0, 0, 32 + stage);
+      }
     }
 
     for (const t of this.trail) {
-      const a = 0.25 * (1 - t.age / 200);
+      const a = (0.2 + stage * 0.02) * (1 - t.age / 200);
       this.glowGfx.fillStyle(c, a);
       this.glowGfx.fillRect(t.x - this.x - 1, t.y - this.y - 11, 2, 22);
     }

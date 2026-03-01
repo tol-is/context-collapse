@@ -264,9 +264,9 @@ let nextId = 1;
 export function scaleEnemy(zone: number): (cfg: EnemyConfig) => EnemyConfig {
   return (cfg) => ({
     ...cfg,
-    health: Math.round(cfg.health * Math.pow(1.3, zone - 1)),
-    speed: Math.round(cfg.speed * (1 + (zone - 1) * 0.14)),
-    damage: Math.round(cfg.damage * Math.pow(1.18, zone - 1)),
+    health: Math.round(cfg.health * Math.pow(1.18, zone - 1)),
+    speed: Math.round(cfg.speed * (1 + (zone - 1) * 0.07)),
+    damage: Math.round(cfg.damage * Math.pow(1.12, zone - 1)),
   });
 }
 

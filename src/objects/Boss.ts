@@ -982,11 +982,65 @@ export default class Boss extends Phaser.GameObjects.Container {
 
   private drawAlignment(flash: boolean) {
     const r = 38;
+    const bp = this.breathPhase;
+
     if (this.apFriendly) {
-      this.gfx.fillStyle(flash ? 0xffffff : 0xd0e0ff, 0.85);
+      this.gfx.fillStyle(flash ? 0xffffff : 0x080e1a, 0.92);
       this.gfx.fillCircle(0, 0, r);
-      this.gfx.lineStyle(2, 0x00ffee, 0.6 + Math.sin(this.breathPhase) * 0.2);
+
+      // inner lattice — rotating hexagram lines connecting opposite vertices
+      this.gfx.lineStyle(1, 0x00ffee, 0.12 + Math.sin(bp) * 0.04);
+      for (let i = 0; i < 6; i++) {
+        const a1 = (i / 6) * Math.PI * 2 + bp * 0.25;
+        const a2 = ((i + 2) / 6) * Math.PI * 2 + bp * 0.25;
+        this.gfx.beginPath();
+        this.gfx.moveTo(Math.cos(a1) * r * 0.78, Math.sin(a1) * r * 0.78);
+        this.gfx.lineTo(Math.cos(a2) * r * 0.78, Math.sin(a2) * r * 0.78);
+        this.gfx.strokePath();
+      }
+
+      // three concentric orbital rings with nodes
+      for (let ring = 0; ring < 3; ring++) {
+        const ringR = r * 0.35 + ring * r * 0.25;
+        this.gfx.lineStyle(
+          1,
+          0x00ffee,
+          0.14 + Math.sin(bp + ring * 1.2) * 0.06
+        );
+        this.gfx.strokeCircle(0, 0, ringR);
+
+        const count = 3 + ring;
+        const dir = ring % 2 === 0 ? 1 : -1;
+        const speed = dir * (0.7 - ring * 0.12);
+        for (let n = 0; n < count; n++) {
+          const na = (n / count) * Math.PI * 2 + bp * speed;
+          const nx = Math.cos(na) * ringR;
+          const ny = Math.sin(na) * ringR;
+          this.gfx.fillStyle(
+            0x00ffee,
+            0.55 + Math.sin(bp * 2 + n + ring) * 0.25
+          );
+          this.gfx.fillCircle(nx, ny, 2.5 - ring * 0.3);
+        }
+      }
+
+      // faint radial spokes connecting core to boundary
+      this.gfx.lineStyle(1, 0x00ffee, 0.06);
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + bp * 0.15;
+        this.gfx.beginPath();
+        this.gfx.moveTo(Math.cos(a) * 6, Math.sin(a) * 6);
+        this.gfx.lineTo(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92);
+        this.gfx.strokePath();
+      }
+
+      // outer boundary
+      this.gfx.lineStyle(1.5, 0x00ffee, 0.45 + Math.sin(bp) * 0.15);
       this.gfx.strokeCircle(0, 0, r + 3);
+
+      // central core
+      this.gfx.fillStyle(0x00ffee, 0.35 + Math.sin(bp * 1.5) * 0.15);
+      this.gfx.fillCircle(0, 0, 5);
     } else {
       const jit =
         this.apTransitionTimer > 0 ? (this.apTransitionTimer / 1000) * 5 : 0;
@@ -1004,7 +1058,7 @@ export default class Boss extends Phaser.GameObjects.Container {
       this.gfx.fillPath();
       this.gfx.lineStyle(2, 0xff0033, 0.8);
       this.gfx.strokePath();
-      this.gfx.fillStyle(0xff0033, Math.sin(this.breathPhase * 4) * 0.3 + 0.5);
+      this.gfx.fillStyle(0xff0033, Math.sin(bp * 4) * 0.3 + 0.5);
       this.gfx.fillCircle(0, 0, r * 0.4);
     }
   }

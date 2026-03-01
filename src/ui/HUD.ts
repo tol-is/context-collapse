@@ -5,6 +5,8 @@ import {
   WEAPON_MOD_NAMES,
 } from "../objects/Cursor";
 
+const STAGE_LABELS = ["I", "II", "III", "IV", "V"];
+
 export default class HUD {
   private scene: Phaser.Scene;
   private gfx: Phaser.GameObjects.Graphics;
@@ -23,6 +25,9 @@ export default class HUD {
   private collapseActive = false;
   private weaponMod: WeaponMod = null;
   private weaponTimer = 0;
+  private baseWeaponName = "";
+  private weaponStage = 1;
+  private classColor = 0x00ffee;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -64,6 +69,10 @@ export default class HUD {
       .text(0, 0, "", { ...font, fontSize: "11px" })
       .setDepth(20002)
       .setScrollFactor(0);
+    this.texts.baseWeapon = scene.add
+      .text(0, 0, "", { ...font, fontSize: "10px" })
+      .setDepth(20002)
+      .setScrollFactor(0);
     this.texts.collapse = scene.add
       .text(0, 0, "CONTEXT OVERFLOW", {
         ...font,
@@ -97,7 +106,10 @@ export default class HUD {
     combo: number,
     collapse: boolean,
     weaponMod: WeaponMod,
-    weaponTimer: number
+    weaponTimer: number,
+    baseWeaponName?: string,
+    weaponStage?: number,
+    classColor?: number
   ) {
     this.contextLevel = ctx;
     this.health = hp;
@@ -111,6 +123,9 @@ export default class HUD {
     this.collapseActive = collapse;
     this.weaponMod = weaponMod;
     this.weaponTimer = weaponTimer;
+    if (baseWeaponName !== undefined) this.baseWeaponName = baseWeaponName;
+    if (weaponStage !== undefined) this.weaponStage = weaponStage;
+    if (classColor !== undefined) this.classColor = classColor;
   }
 
   showBossName(name: string) {
@@ -193,6 +208,8 @@ export default class HUD {
       this.texts.combo.setAlpha(0);
     }
 
+    const stageLabel = this.weaponStage > 1 ? ` ${STAGE_LABELS[this.weaponStage - 1]}` : "";
+    const baseColor = "#" + this.classColor.toString(16).padStart(6, "0");
     if (this.weaponMod) {
       const wc =
         "#" + WEAPON_MOD_COLORS[this.weaponMod].toString(16).padStart(6, "0");
@@ -202,8 +219,18 @@ export default class HUD {
         .setColor(wc)
         .setPosition(w / 2 - 60, botY + 5)
         .setAlpha(1);
+      this.texts.baseWeapon
+        .setText(`${this.baseWeaponName}${stageLabel}`)
+        .setColor(baseColor)
+        .setPosition(w / 2 - 60, botY - 9)
+        .setAlpha(0.45);
     } else {
       this.texts.weapon.setAlpha(0);
+      this.texts.baseWeapon
+        .setText(`${this.baseWeaponName}${stageLabel}`)
+        .setColor(baseColor)
+        .setPosition(w / 2 - 60, botY + 5)
+        .setAlpha(0.7);
     }
 
     this.texts.collapse.setAlpha(

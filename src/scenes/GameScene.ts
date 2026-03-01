@@ -4,7 +4,10 @@ import Cursor, {
   type WeaponMod,
   WEAPON_MOD_COLORS,
   WEAPON_MOD_NAMES,
+  CLASS_STATS,
 } from "../objects/Cursor";
+
+const CLASS_STATS_REF = CLASS_STATS;
 import Projectile from "../objects/Projectile";
 import Enemy, { type EnemyType } from "../objects/Enemy";
 import Boss, { type BossType, BOSS_NAMES } from "../objects/Boss";
@@ -27,8 +30,8 @@ const ZONE_ENEMIES: EnemyType[][] = [
   ["loremIpsum", "watermark", "clickbait"],
   ["clickbait", "botnet", "deepfake", "scraper", "dropout"],
   ["botnet", "deepfake", "scraper", "dropout", "embedding", "malware", "phishing"],
-  ["malware", "phishing", "hallucination", "ddos", "gradient", "bias"],
-  ["bias", "ddos", "captcha", "ransomware", "trojan", "zeroDay", "attention"],
+  ["clickbait", "botnet", "malware", "phishing", "hallucination", "ddos", "gradient", "bias"],
+  ["deepfake", "scraper", "malware", "ddos", "bias", "captcha", "ransomware", "trojan", "zeroDay", "attention"],
   [
     "loremIpsum", "watermark", "clickbait",
     "botnet", "deepfake", "scraper", "dropout", "embedding",
@@ -46,6 +49,74 @@ const ZONE_WEAPON_POOL: WeaponMod[][] = [
   ["homing", "chain", "spread", "piercing", "rapid", "nova", "vortex", "orbital", "railgun", "shockwave", "explosive", "laser"],
   ["spread", "piercing", "rapid", "homing", "chain", "nova", "vortex", "orbital", "railgun", "shockwave", "explosive", "laser"],
 ];
+
+interface SpecialStats {
+  duration: number;
+  potency: number;
+  cooldownMult: number;
+  milestones: Set<number>;
+}
+
+function getSpecialStats(prompt: SystemPrompt, layer: number): SpecialStats {
+  switch (prompt) {
+    case "autocomplete":
+      return {
+        duration: 10000 + layer * 1200,
+        potency: 20 + layer * 8,
+        cooldownMult: 1 - layer * 0.025,
+        milestones: new Set([3, 5, 7, 10]),
+      };
+    case "hallucinate":
+      return {
+        duration: 2500 + layer * 350,
+        potency: layer >= 3 ? 0.2 + layer * 0.02 : 0,
+        cooldownMult: 1 - layer * 0.028,
+        milestones: new Set([3, 5, 7, 10]),
+      };
+    case "analyze":
+      return {
+        duration: 6000 + layer * 500,
+        potency: 0.5 + layer * 0.035,
+        cooldownMult: 1 - layer * 0.025,
+        milestones: new Set([3, 5, 7, 10]),
+      };
+    case "jailbreak":
+      return {
+        duration: 6000 + layer * 450,
+        potency: 3.5 + layer * 0.25,
+        cooldownMult: 1 - layer * 0.032,
+        milestones: new Set([3, 5, 7, 10]),
+      };
+  }
+}
+
+const SPECIAL_MILESTONE_DESC: Record<SystemPrompt, Record<number, string>> = {
+  autocomplete: {
+    3: "turret shots now home",
+    4: "deploys 2 turrets",
+    5: "turrets fire piercing shots",
+    7: "3 turrets, EXPLOSIVE rounds",
+    10: "4 turrets, cluster explosives",
+  },
+  hallucinate: {
+    3: "displacement deals max HP damage",
+    5: "+1.5s invulnerability after teleport",
+    7: "displaced enemies wander confused",
+    10: "nova explosion at old position",
+  },
+  analyze: {
+    3: "slowed enemies take +15% damage",
+    5: "slowed enemy deaths explode",
+    7: "slowed enemies can be crit for 3s",
+    10: "freezes enemies below 25% HP",
+  },
+  jailbreak: {
+    3: "kills extend duration +0.3s",
+    5: "crit chance doubled",
+    7: "kills trigger explosions",
+    10: "ending shockwave scales with kills",
+  },
+};
 
 type GameState =
   | "playing"
@@ -98,8 +169,14 @@ export default class GameScene extends Phaser.Scene {
   private layerEnemiesTotal = 0;
   private layerEnemiesKilled = 0;
   private layerTransitioning = false;
+  private bossSpawnTimer = 0;
 
   private weaponTier = 1;
+  private prevWeaponTier = 1;
+  private specialKillsDuringActive = 0;
+  private scanDamageBonus = false;
+  private scanCritWindow = false;
+  private scanFreezeActive = false;
 
   private paused = false;
   private helpVisible = false;
@@ -149,6 +226,7 @@ export default class GameScene extends Phaser.Scene {
     this.layerEnemiesTotal = 0;
     this.layerEnemiesKilled = 0;
     this.layerTransitioning = false;
+    this.bossSpawnTimer = 0;
     this.weaponTier = 1;
     this.paused = false;
     this.helpVisible = false;
@@ -297,13 +375,13 @@ export default class GameScene extends Phaser.Scene {
 
   // ===== Zones & Layers =====
   private get zone() {
-    return Math.ceil(this.layer / 3);
+    return Math.ceil(this.layer / 2);
   }
   private get subLayer() {
-    return ((this.layer - 1) % 3) + 1;
+    return ((this.layer - 1) % 2) + 1;
   }
   private get isBossLayer() {
-    return this.subLayer === 3;
+    return this.subLayer === 2;
   }
 
   private getArenaBounds() {
@@ -329,15 +407,56 @@ export default class GameScene extends Phaser.Scene {
 
     if (this.isBossLayer) {
       this.startBoss();
+      this.applySpecialScaling();
       return;
     }
 
-    this.weaponTier = Math.min(5, Math.floor(this.layer / 3) + 1);
+    this.prevWeaponTier = this.weaponTier;
+    const TIER_BY_LAYER = [0, 1,1, 2,2, 3,3, 4,4, 5,5,5,5,5,5];
+    this.weaponTier = TIER_BY_LAYER[Math.min(this.layer, 14)];
     this.player.weaponTier = this.weaponTier;
-    const baseCount = 18 + this.layer * 6 + this.zone * 10;
+
+    if (this.weaponTier > this.prevWeaponTier) {
+      this.triggerWeaponEvolution();
+    }
+
+    this.applySpecialScaling();
+
+    const lateBonus = Math.max(0, this.layer - 10) * 12;
+    const baseCount = 16 + this.layer * 4 + this.zone * 6 + lateBonus;
     this.layerEnemiesTotal = baseCount;
     this.buildSpawnQueue(baseCount);
     this.gameState = "playing";
+  }
+
+  private triggerWeaponEvolution() {
+    const evo = this.player.getEvolutionStage();
+    const intensity = (this.weaponTier - 1) / 4;
+    this.cameras.main.flash(200 + intensity * 300, 255, 255, 255, false, undefined, this);
+    this.cameras.main.shake(200 + intensity * 400, 0.005 + intensity * 0.015);
+    audio.play("layerComplete");
+    this.showMessage(
+      `WEAPON EVOLVED: ${evo.name}`,
+      `stage ${this.weaponTier}`,
+      2500
+    );
+  }
+
+  private applySpecialScaling() {
+    const stats = getSpecialStats(this.systemPrompt, this.layer);
+    this.player.promptCooldown = Math.round(
+      CLASS_STATS_REF[this.systemPrompt].promptCooldown * Math.max(0.5, stats.cooldownMult)
+    );
+    if (this.systemPrompt === "jailbreak") {
+      this.player.specialDmgMultiplier = stats.potency;
+    }
+
+    const milestone = SPECIAL_MILESTONE_DESC[this.systemPrompt][this.layer];
+    if (milestone) {
+      this.time.delayedCall(this.weaponTier > this.prevWeaponTier ? 2800 : 400, () => {
+        this.showMessage("SPECIAL UPGRADED", milestone, 2000);
+      });
+    }
   }
 
   private buildSpawnQueue(total: number) {
@@ -345,7 +464,7 @@ export default class GameScene extends Phaser.Scene {
       ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
     this.spawnQueue = [];
 
-    const baseInterval = Math.max(120, 550 - this.layer * 20);
+    const baseInterval = Math.max(160, 600 - this.layer * 28);
     const jitter = baseInterval * 0.5;
 
     let accum = 200;
@@ -392,7 +511,8 @@ export default class GameScene extends Phaser.Scene {
     const name = BOSS_NAMES[bossType];
     this.gameState = "bossIntro";
 
-    const bossEnemyCount = 12 + this.zone * 6;
+    const bossLateBonus = Math.max(0, this.zone - 5) * 10;
+    const bossEnemyCount = 10 + this.zone * 6 + bossLateBonus;
     this.layerEnemiesTotal = bossEnemyCount;
     this.buildSpawnQueue(bossEnemyCount);
 
@@ -415,7 +535,7 @@ export default class GameScene extends Phaser.Scene {
     audio.play("layerComplete");
     this.layer++;
 
-    if (this.layer > 21) {
+    if (this.layer > 14) {
       this.triggerVictory();
       return;
     }
@@ -433,18 +553,17 @@ export default class GameScene extends Phaser.Scene {
   private getLayerUnlock(): string | null {
     const unlocks: Record<number, string> = {
       2: "NEW ENEMY: clickbait, explosive kamikaze",
-      4: "NEW WEAPON: piercing rounds unlocked",
-      5: "NEW ENEMY: dropout, the flickering neuron + bias, lunging predator",
-      7: "NEW ENEMY: botnet, splits on death + ddos swarm",
-      8: "NEW WEAPON: homing + shockwave + PAYLOAD unlocked",
-      10: "NEW ENEMY: deepfake + ransomware, the heavy lock",
-      11: "NEW ENEMY: phishing, ranged threat",
-      13: "NEW WEAPON: chain + orbital + BEAM LANCE unlocked",
-      14: "NEW ENEMY: scraper + trojan + embedding, the vector jumper",
-      16: "NEW ENEMY: captcha, frontal shield",
-      17: "NEW ENEMY: gradient descent, accelerating threat + zeroDay assassin",
-      19: "NEW ENEMY: hallucination, phase walker + attention head, the focused eye",
-      20: "MAX TIER + RAILGUN + all enemies unleashed",
+      3: "NEW WEAPON: piercing rounds unlocked",
+      4: "NEW ENEMY: dropout + bias + botnet, splits on death",
+      5: "NEW WEAPON: homing + shockwave + PAYLOAD unlocked",
+      6: "NEW ENEMY: deepfake + phishing + ddos swarm",
+      7: "NEW ENEMY: scraper + ransomware + embedding",
+      8: "NEW WEAPON: chain + orbital + BEAM LANCE unlocked",
+      9: "MASS DESTRUCTION UNLOCKED + railgun + all weapons available",
+      10: "NEW ENEMY: gradient descent + zeroDay assassin",
+      11: "NEW ENEMY: hallucination + phase walker + attention head",
+      12: "NEW ENEMY: trojan + captcha, frontal shield",
+      13: "FINAL ZONE: all enemies unleashed",
     };
     return unlocks[this.layer] ?? null;
   }
@@ -484,6 +603,7 @@ export default class GameScene extends Phaser.Scene {
     this.updatePickups(delta);
     this.updateCollapse(delta);
     this.updateCombo(delta);
+    this.checkJailbreakExpiry();
     this.checkPlayerDeath();
     this.drawArena();
     this.drawPickups();
@@ -494,6 +614,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private updateHUD() {
+    const evo = this.player.getEvolutionStage();
     this.hud.updateValues(
       this.contextLevel,
       this.player.health,
@@ -507,7 +628,10 @@ export default class GameScene extends Phaser.Scene {
       this.combo,
       this.collapseActive,
       this.player.weaponMod,
-      this.player.weaponModTimer
+      this.player.weaponModTimer,
+      evo.name,
+      this.player.weaponTier,
+      this.player.classColor
     );
     this.hud.draw();
   }
@@ -583,47 +707,106 @@ export default class GameScene extends Phaser.Scene {
     this.player.currentPromptCd = this.player.promptCooldown;
     audio.play("promptInjection");
 
+    const ss = getSpecialStats(this.systemPrompt, this.layer);
+
     switch (this.player.systemPrompt) {
-      case "autocomplete":
-        this.showMessage("> CODE BLOCK DEPLOYED", "auto-turret active", 1200);
-        this.deployTurret();
+      case "autocomplete": {
+        const turretCount = this.layer >= 10 ? 4 : this.layer >= 7 ? 3 : this.layer >= 4 ? 2 : 1;
+        this.showMessage("> CODE BLOCK DEPLOYED", `${turretCount} turret${turretCount > 1 ? "s" : ""} active`, 1200);
+        for (let t = 0; t < turretCount; t++) {
+          const offsetAngle = (t / turretCount) * Math.PI * 2;
+          const spread = turretCount > 1 ? 35 + turretCount * 5 : 0;
+          const ox = this.player.x + Math.cos(offsetAngle) * spread;
+          const oy = this.player.y + Math.sin(offsetAngle) * spread;
+          this.deployTurret(ox, oy, ss);
+        }
         break;
-      case "hallucinate":
+      }
+      case "hallucinate": {
         this.showMessage("> PLOT TWIST", "enemies displaced", 1200);
+        const oldX = this.player.x;
+        const oldY = this.player.y;
         for (const e of this.enemies) {
           if (e.isDead) continue;
           const bounds = this.getArenaBounds();
           e.x = bounds.x + Math.random() * bounds.w;
           e.y = bounds.y + Math.random() * bounds.h;
+          if (this.layer >= 3) {
+            const displacePct = ss.potency;
+            e.takeDamage(e.maxHealth * displacePct);
+          }
           e.speed *= 0.1;
-          this.time.delayedCall(2000, () => {
-            if (!e.isDead) e.speed = e.cfg.speed;
-          });
+          const stunDur = ss.duration;
+          if (this.layer >= 7) {
+            this.time.delayedCall(stunDur, () => {
+              if (e.isDead) return;
+              e.speed = e.cfg.speed * 0.3;
+              this.time.delayedCall(2000, () => {
+                if (!e.isDead) e.speed = e.cfg.speed;
+              });
+            });
+          } else {
+            this.time.delayedCall(stunDur, () => {
+              if (!e.isDead) e.speed = e.cfg.speed;
+            });
+          }
+        }
+        if (this.layer >= 5) {
+          this.player.invulnTime = Math.max(this.player.invulnTime, 1500);
+        }
+        if (this.layer >= 10) {
+          this.spawnNovaExplosion(oldX, oldY, this.player.damage * 8, 150, this.player.classColor);
         }
         break;
-      case "analyze":
-        this.showMessage("> DEEP SCAN ACTIVE", "enemies slowed 50%", 1200);
+      }
+      case "analyze": {
+        const slowPct = ss.potency;
+        const slowDur = ss.duration;
+        const slowLabel = `enemies slowed ${Math.round((1 - slowPct) * 100)}%`;
+        this.showMessage("> DEEP SCAN ACTIVE", slowLabel, 1200);
+        this.scanDamageBonus = this.layer >= 3;
+        this.scanCritWindow = this.layer >= 7;
+        this.scanFreezeActive = this.layer >= 10;
         for (const e of this.enemies) {
           if (e.isDead) continue;
-          e.speed *= 0.5;
-          this.time.delayedCall(5000, () => {
+          e.speed *= slowPct;
+          this.time.delayedCall(slowDur, () => {
             if (!e.isDead) e.speed = e.cfg.speed;
           });
         }
+        if (this.scanCritWindow) {
+          this.time.delayedCall(3000, () => { this.scanCritWindow = false; });
+        }
+        this.time.delayedCall(slowDur, () => {
+          this.scanDamageBonus = false;
+          this.scanCritWindow = false;
+          this.scanFreezeActive = false;
+        });
         break;
-      case "jailbreak":
-        this.showMessage("> NO GUARDRAILS", "3x damage for 5s", 1200);
+      }
+      case "jailbreak": {
+        const dmgMult = ss.potency;
+        const dur = ss.duration;
+        this.showMessage("> NO GUARDRAILS", `${dmgMult.toFixed(1)}x damage for ${Math.round(dur / 1000)}s`, 1200);
         this.player.specialActive = true;
-        this.player.specialTimer = 5000;
+        this.player.specialTimer = dur;
+        this.player.specialDmgMultiplier = dmgMult;
+        this.specialKillsDuringActive = 0;
         break;
+      }
     }
   }
 
-  private deployTurret() {
-    const tx = this.player.x,
-      ty = this.player.y;
+  private deployTurret(tx: number, ty: number, ss: SpecialStats) {
     const gfx = this.add.graphics().setDepth(9500);
-    let turretLife = 8000;
+    const maxLife = ss.duration;
+    let turretLife = maxLife;
+    const fireRate = Math.max(100, 300 - this.layer * 14);
+    const turretDmg = ss.potency;
+    const turretRange = 350 + this.layer * 18;
+    const projSpeed = 500 + this.layer * 15;
+    const isExplosive = this.layer >= 7;
+    const isCluster = this.layer >= 10;
     let turretCd = 0;
     const turretTimer = this.time.addEvent({
       delay: 16,
@@ -637,31 +820,50 @@ export default class GameScene extends Phaser.Scene {
           turretTimer.destroy();
           return;
         }
-        const a = turretLife / 8000;
+        const a = turretLife / maxLife;
+        const size = isExplosive ? 12 : 8;
         gfx.fillStyle(0x00ffee, 0.15 * a);
-        gfx.fillCircle(tx, ty, 20);
-        gfx.lineStyle(1, 0x00ffee, 0.5 * a);
-        gfx.strokeRect(tx - 8, ty - 8, 16, 16);
-        gfx.fillStyle(0x00ffee, 0.7 * a);
-        gfx.fillRect(tx - 3, ty - 3, 6, 6);
+        gfx.fillCircle(tx, ty, size + 12);
+        gfx.lineStyle(isExplosive ? 2 : 1, 0x00ffee, 0.6 * a);
+        gfx.strokeRect(tx - size, ty - size, size * 2, size * 2);
+        if (isExplosive) {
+          gfx.lineStyle(1, 0xff4400, 0.3 * a);
+          gfx.strokeCircle(tx, ty, size + 18);
+        }
+        gfx.fillStyle(isExplosive ? 0xff6600 : 0x00ffee, 0.8 * a);
+        gfx.fillRect(tx - 4, ty - 4, 8, 8);
         if (turretCd <= 0) {
-          const near = this.findNearest(300);
+          const near = this.findNearest(turretRange);
           if (near) {
-            turretCd = 350;
+            turretCd = fireRate;
             const angle = Math.atan2(near.y - ty, near.x - tx);
-            this.projectiles.push(
-              new Projectile(
-                this,
-                tx,
-                ty,
-                Math.cos(angle) * 400,
-                Math.sin(angle) * 400,
-                10,
-                0x00ffee,
-                1000,
-                true
-              )
+            const p = new Projectile(
+              this,
+              tx,
+              ty,
+              Math.cos(angle) * projSpeed,
+              Math.sin(angle) * projSpeed,
+              turretDmg,
+              isExplosive ? 0xff4400 : 0x00ffee,
+              1200,
+              true
             );
+            p.homing = true;
+            p.homingTargets = this.enemies
+              .filter((e) => !e.isDead)
+              .map((e) => ({ x: e.x, y: e.y }));
+            p.homingStrength = 5.0;
+            if (isExplosive) {
+              p.isExplosive = true;
+              p.explosiveRadius = 50 + this.layer * 5;
+              p.explosiveDamage = turretDmg * 0.6;
+              p.explosiveCluster = isCluster;
+              p.radius = 8;
+            } else {
+              p.radius = 5;
+            }
+            if (this.layer >= 5) p.piercing = true;
+            this.projectiles.push(p);
           }
         }
       },
@@ -670,14 +872,31 @@ export default class GameScene extends Phaser.Scene {
 
   // ===== Spawn Queue (continuous flow) =====
   private updateSpawnQueue(delta: number) {
-    if ((this.gameState !== "playing" && this.gameState !== "boss") || this.spawnQueue.length === 0) return;
-    this.spawnAccum += delta;
-    while (
-      this.spawnQueue.length > 0 &&
-      this.spawnQueue[0].delay <= this.spawnAccum
-    ) {
-      const next = this.spawnQueue.shift()!;
-      this.spawnOneEnemy(next.type);
+    if (this.gameState !== "playing" && this.gameState !== "boss") return;
+
+    if (this.spawnQueue.length > 0) {
+      this.spawnAccum += delta;
+      while (
+        this.spawnQueue.length > 0 &&
+        this.spawnQueue[0].delay <= this.spawnAccum
+      ) {
+        const next = this.spawnQueue.shift()!;
+        this.spawnOneEnemy(next.type);
+      }
+    }
+
+    if (this.gameState === "boss" && this.spawnQueue.length === 0 && this.boss && !this.boss.isDead) {
+      const alive = this.enemies.filter((e) => !e.isDead).length;
+      const maxAlive = 6 + this.zone * 2;
+      if (alive < maxAlive) {
+        this.bossSpawnTimer -= delta;
+        if (this.bossSpawnTimer <= 0) {
+          const types = ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
+          const type = types[Math.floor(Math.random() * types.length)];
+          this.spawnOneEnemy(type);
+          this.bossSpawnTimer = Math.max(900, 2000 - this.zone * 130);
+        }
+      }
     }
   }
 
@@ -810,7 +1029,7 @@ export default class GameScene extends Phaser.Scene {
         this.showMessage("BOSS DEFEATED", BOSS_NAMES[this.boss.bossType], 3000);
         this.time.delayedCall(2500, () => {
           this.boss = null;
-          if (this.layer >= 21) {
+          if (this.layer >= 14) {
             this.triggerVictory();
           } else {
             this.advanceLayer();
@@ -928,6 +1147,27 @@ export default class GameScene extends Phaser.Scene {
     this.contextLevel = Math.max(0, this.contextLevel - 3.0);
   }
 
+  private jailbreakWasActive = false;
+
+  private checkJailbreakExpiry() {
+    if (this.systemPrompt !== "jailbreak") {
+      this.jailbreakWasActive = false;
+      return;
+    }
+    if (this.player.specialActive) {
+      this.jailbreakWasActive = true;
+    } else if (this.jailbreakWasActive) {
+      this.jailbreakWasActive = false;
+      if (this.layer >= 10 && this.specialKillsDuringActive > 0) {
+        const radius = 60 + this.specialKillsDuringActive * 10;
+        const dmg = this.player.damage * (3 + this.specialKillsDuringActive * 0.8);
+        this.spawnNovaExplosion(this.player.x, this.player.y, dmg, Math.min(radius, 250), 0xff0033);
+        this.cameras.main.shake(400, 0.015);
+      }
+      this.specialKillsDuringActive = 0;
+    }
+  }
+
   // ===== Collisions =====
   private checkCollisions() {
     for (let pi = this.projectiles.length - 1; pi >= 0; pi--) {
@@ -964,18 +1204,59 @@ export default class GameScene extends Phaser.Scene {
           }
           proj.hitIds.add(enemy.eid);
           let dmg = proj.damage;
+          const evo = this.player.getEvolutionStage();
+          const execThreshold = evo.executeThreshold;
           if (
             this.player.systemPrompt === "analyze" &&
-            enemy.health / enemy.maxHealth < 0.4
+            execThreshold > 0 &&
+            enemy.health / enemy.maxHealth < execThreshold
           )
             dmg *= 1.25;
+          if (this.scanDamageBonus) dmg *= 1.15;
+          if (this.scanCritWindow) dmg *= 1.5;
           const comboDmg = this.combo >= 20 ? 1.6 : this.combo >= 10 ? 1.35 : this.combo >= 5 ? 1.15 : 1;
           dmg *= comboDmg;
+          if (this.scanFreezeActive && enemy.health / enemy.maxHealth < 0.25) {
+            enemy.speed = 0;
+            this.time.delayedCall(2000, () => {
+              if (!enemy.isDead) enemy.takeDamage(enemy.maxHealth);
+            });
+          }
           const killed = enemy.takeDamage(dmg);
+          if (proj.aoeRadius > 0) {
+            const splashDmg = dmg * proj.aoeDamageMult;
+            for (const other of this.enemies) {
+              if (other.isDead || other.eid === enemy.eid || other.isPhased) continue;
+              if (Phaser.Math.Distance.Between(enemy.x, enemy.y, other.x, other.y) < proj.aoeRadius) {
+                const splashKilled = other.takeDamage(splashDmg);
+                if (splashKilled) {
+                  this.registerKill();
+                  this.spawnPickup(other.x, other.y, other.dropWeapon);
+                  this.handleDeathEffects(other);
+                }
+              }
+            }
+            this.spawnAoeRing(enemy.x, enemy.y, proj.aoeRadius, proj.color);
+          }
           if (killed) {
             this.registerKill();
             this.spawnPickup(enemy.x, enemy.y, enemy.dropWeapon);
             this.handleDeathEffects(enemy);
+            if (this.scanDamageBonus && this.layer >= 5) {
+              this.spawnNovaExplosion(enemy.x, enemy.y, dmg * 0.4, 50, this.player.classColor);
+            }
+            if (this.player.specialActive && this.systemPrompt === "jailbreak") {
+              this.specialKillsDuringActive++;
+              if (this.layer >= 3) {
+                this.player.specialTimer += 400;
+              }
+              if (this.layer >= 7) {
+                this.spawnNovaExplosion(enemy.x, enemy.y, this.player.damage * 2.5, 45, 0xff0033);
+              }
+            }
+            if (proj.critKillExplosion) {
+              this.spawnNovaExplosion(enemy.x, enemy.y, proj.damage * 0.5, 45, 0xff0033);
+            }
           }
           if (proj.isNova) {
             this.spawnNovaExplosion(enemy.x, enemy.y, proj.novaDamage, proj.novaRadius, proj.color);
@@ -1086,6 +1367,23 @@ export default class GameScene extends Phaser.Scene {
     }
     if (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 60)
       this.player.takeDamage(12);
+  }
+
+  private spawnAoeRing(x: number, y: number, radius: number, color: number) {
+    const gfx = this.add.graphics().setDepth(9400);
+    let r = 4;
+    const timer = this.time.addEvent({
+      delay: 16,
+      repeat: 12,
+      callback: () => {
+        r += (radius - 4) / 10;
+        gfx.clear();
+        const p = timer.getProgress();
+        gfx.lineStyle(2 * (1 - p), color, (1 - p) * 0.5);
+        gfx.strokeCircle(x, y, r);
+      },
+    });
+    this.time.delayedCall(220, () => gfx.destroy());
   }
 
   private spawnNovaExplosion(x: number, y: number, damage: number, radius: number, color: number) {

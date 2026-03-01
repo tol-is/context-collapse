@@ -232,7 +232,7 @@ export default class ClassSelectScene extends Phaser.Scene {
       this.typeText(this.panelSpecialVal, `SPECIAL ${stats.special}`, spd)
     );
 
-    const maxes = { hp: 140, spd: 320, dmg: 25, rate: 12 };
+    const maxes = { hp: 140, spd: 350, dmg: 25, rate: 12 };
     const barLen = 14;
     const vals = [
       { name: "HP ", v: stats.health, max: maxes.hp, text: `${stats.health}` },

@@ -952,10 +952,34 @@ const BOSSES: CreatureEntry[] = [
       const r = 30;
       const transition = (Math.sin(t * 0.5) + 1) / 2;
       if (transition < 0.5) {
-        gfx.fillStyle(0xd0e0ff, 0.85);
+        gfx.fillStyle(0x080e1a, 0.92);
         gfx.fillCircle(0, 0, r);
-        gfx.lineStyle(2, 0x00ffee, 0.6 + Math.sin(t) * 0.2);
+        gfx.lineStyle(1, 0x00ffee, 0.12 + Math.sin(t) * 0.04);
+        for (let i = 0; i < 6; i++) {
+          const a1 = (i / 6) * Math.PI * 2 + t * 0.25;
+          const a2 = ((i + 2) / 6) * Math.PI * 2 + t * 0.25;
+          gfx.beginPath();
+          gfx.moveTo(Math.cos(a1) * r * 0.78, Math.sin(a1) * r * 0.78);
+          gfx.lineTo(Math.cos(a2) * r * 0.78, Math.sin(a2) * r * 0.78);
+          gfx.strokePath();
+        }
+        for (let ring = 0; ring < 3; ring++) {
+          const ringR = r * 0.35 + ring * r * 0.25;
+          gfx.lineStyle(1, 0x00ffee, 0.14 + Math.sin(t + ring * 1.2) * 0.06);
+          gfx.strokeCircle(0, 0, ringR);
+          const count = 3 + ring;
+          const dir = ring % 2 === 0 ? 1 : -1;
+          const speed = dir * (0.7 - ring * 0.12);
+          for (let n = 0; n < count; n++) {
+            const na = (n / count) * Math.PI * 2 + t * speed;
+            gfx.fillStyle(0x00ffee, 0.55 + Math.sin(t * 2 + n + ring) * 0.25);
+            gfx.fillCircle(Math.cos(na) * ringR, Math.sin(na) * ringR, 2);
+          }
+        }
+        gfx.lineStyle(1.5, 0x00ffee, 0.45 + Math.sin(t) * 0.15);
         gfx.strokeCircle(0, 0, r + 3);
+        gfx.fillStyle(0x00ffee, 0.35 + Math.sin(t * 1.5) * 0.15);
+        gfx.fillCircle(0, 0, 4);
       } else {
         const spikeCount = 14;
         gfx.fillStyle(0x0f0f10, 0.9);
