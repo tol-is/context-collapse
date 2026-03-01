@@ -5,7 +5,7 @@ import {
   WEAPON_MOD_NAMES,
 } from "../objects/Cursor";
 
-const STAGE_LABELS = ["I", "II", "III", "IV", "V"];
+const STAGE_LABELS = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
 export default class HUD {
   private scene: Phaser.Scene;
@@ -28,6 +28,9 @@ export default class HUD {
   private baseWeaponName = "";
   private weaponStage = 1;
   private classColor = 0x00ffee;
+  private turretActive = 0;
+  private turretMax = 0;
+  private turretRecharging = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -91,6 +94,10 @@ export default class HUD {
       .setDepth(20002)
       .setScrollFactor(0)
       .setAlpha(0);
+    this.texts.turret = scene.add
+      .text(10, 0, "", { ...font, color: "#00ddbb" })
+      .setDepth(20002)
+      .setScrollFactor(0);
   }
 
   updateValues(
@@ -109,7 +116,10 @@ export default class HUD {
     weaponTimer: number,
     baseWeaponName?: string,
     weaponStage?: number,
-    classColor?: number
+    classColor?: number,
+    turretActive?: number,
+    turretMax?: number,
+    turretRecharging?: boolean
   ) {
     this.contextLevel = ctx;
     this.health = hp;
@@ -126,6 +136,9 @@ export default class HUD {
     if (baseWeaponName !== undefined) this.baseWeaponName = baseWeaponName;
     if (weaponStage !== undefined) this.weaponStage = weaponStage;
     if (classColor !== undefined) this.classColor = classColor;
+    if (turretActive !== undefined) this.turretActive = turretActive;
+    if (turretMax !== undefined) this.turretMax = turretMax;
+    if (turretRecharging !== undefined) this.turretRecharging = turretRecharging;
   }
 
   showBossName(name: string) {
@@ -173,8 +186,6 @@ export default class HUD {
     this.texts.ctxPct.setColor(this.collapseActive ? "#ff0033" : "#FFFFFF");
 
     const botY = h - 24;
-    this.gfx.fillStyle(0x000000, 0.35);
-    this.gfx.fillRect(0, botY, w, 24);
 
     const hpPct = this.health / this.maxHealth;
     const hpColor =
@@ -188,9 +199,6 @@ export default class HUD {
       const severity = 1 - hpPct / 0.4;
       const pulse = 0.5 + 0.5 * Math.sin(Date.now() * (0.006 + severity * 0.01));
       this.texts.hp.setAlpha(0.55 + pulse * 0.45);
-      const barBg = (0.04 + severity * 0.14) * pulse;
-      this.gfx.fillStyle(0xff0033, barBg);
-      this.gfx.fillRect(0, botY, 210, 24);
     } else {
       this.texts.hp.setAlpha(1);
     }
@@ -204,6 +212,14 @@ export default class HUD {
     this.texts.prompt
       .setText(`E [${charges}]${cdPct}`)
       .setPosition(270, botY + 5);
+
+    const tSlots = this.turretMax > 0
+      ? "\u25A0".repeat(this.turretActive) + "\u25A1".repeat(Math.max(0, this.turretMax - this.turretActive))
+      : "";
+    const tLabel = this.turretRecharging ? " \u00B7\u00B7" : "";
+    this.texts.turret
+      .setText(this.turretMax > 0 ? `Q [${tSlots}]${tLabel}` : "")
+      .setPosition(370, botY + 5);
 
     if (this.combo >= 3) {
       const cc =

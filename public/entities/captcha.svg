@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
+<circle cx="0" cy="0" r="28" fill="#cccc00" fill-opacity="0.06"/>
+<circle cx="0" cy="0" r="34" fill="#cccc00" fill-opacity="0.03"/>
+<circle cx="0" cy="0" r="18" fill="none" stroke="#cccc00" stroke-width="1" stroke-opacity="0.2"/>
+<circle cx="0" cy="0" r="12" fill="none" stroke="#cccc00" stroke-width="1" stroke-opacity="0.12"/>
+<path d="M7.32,5.23 L15.46,11.04 L10.13,16.07 L4.8,7.61 Z" fill="#cccc00" fill-opacity="0.35"/>
+<path d="M2.85,8.54 L6.02,18.02 L-1.25,18.96 L-0.59,8.98 Z" fill="#cccc00" fill-opacity="0.5"/>
+<path d="M-2.71,8.58 L-5.72,18.12 L-12.16,14.6 L-5.76,6.92 Z" fill="#cccc00" fill-opacity="0.35"/>
+<path d="M-7.24,5.35 L-15.28,11.3 L-18.42,4.67 L-8.72,2.21 Z" fill="#cccc00" fill-opacity="0.5"/>
+<path d="M-9,0.07 L-19,0.16 L-17.64,-7.05 L-8.36,-3.34 Z" fill="#cccc00" fill-opacity="0.35"/>
+<path d="M-7.32,-5.23 L-15.46,-11.04 L-10.13,-16.07 L-4.8,-7.61 Z" fill="#cccc00" fill-opacity="0.5"/>
+<path d="M-2.85,-8.54 L-6.02,-18.02 L1.25,-18.96 L0.59,-8.98 Z" fill="#cccc00" fill-opacity="0.35"/>
+<path d="M2.71,-8.58 L5.72,-18.12 L12.16,-14.6 L5.76,-6.92 Z" fill="#cccc00" fill-opacity="0.5"/>
+<path d="M7.24,-5.35 L15.28,-11.3 L18.42,-4.67 L8.72,-2.21 Z" fill="#cccc00" fill-opacity="0.35"/>
+<path d="M9,-0.07 L19,-0.16 L17.64,7.05 L8.36,3.34 Z" fill="#cccc00" fill-opacity="0.5"/>
+<circle cx="0" cy="0" r="6" fill="#ffff33" fill-opacity="0.75"/>
+<circle cx="0" cy="0" r="3.5" fill="#cccc00" fill-opacity="0.5"/>
+<circle cx="-1" cy="-1.5" r="1.5" fill="#ffffff" fill-opacity="0.3"/>
+<path d="M21.64,-10.38 L22.46,-8.45 L23.11,-6.46 L23.59,-4.42 L23.88,-2.35 L24,-0.26 L23.93,1.83 L23.68,3.91 L23.25,5.96 L22.64,7.96 L21.86,9.91 L20.91,11.77 L19.81,13.55 L18.55,15.23 L17.15,16.79 L15.63,18.22 L13.98,19.51 L12.23,20.65 L10.38,21.64 L8.45,22.46 L6.46,23.11 L4.42,23.59 L2.35,23.88 L0.26,24 L-1.83,23.93" fill="none" stroke="#ffff33" stroke-width="4" stroke-opacity="0.8"/>
+<path d="M25.25,-12.11 L26.21,-9.86 L26.97,-7.54 L27.52,-5.16 L27.87,-2.74 L28,-0.3 L27.92,2.14 L27.63,4.56 L27.12,6.95 L26.41,9.29 L25.5,11.56 L24.4,13.74 L23.11,15.81 L21.64,17.76 L20.01,19.58 L18.23,21.25 L16.31,22.76 L14.26,24.1 L12.11,25.25 L9.86,26.21 L7.54,26.97 L5.16,27.52 L2.74,27.87 L0.3,28 L-2.14,27.92" fill="none" stroke="#ffff33" stroke-width="1.5" stroke-opacity="0.3"/>
+<path d="M28.85,-13.84 L29.95,-11.27 L30.82,-8.62 L31.45,-5.9 L31.85,-3.14 L32,-0.35 L31.91,2.44 L31.57,5.21 L31,7.95 L30.19,10.62 L29.15,13.21 L27.89,15.7 L26.41,18.07 L24.74,20.3 L22.87,22.38 L20.83,24.29 L18.64,26.01 L16.3,27.54 L13.84,28.85 L11.27,29.95 L8.62,30.82 L5.9,31.45 L3.14,31.85 L0.35,32 L-2.44,31.91" fill="none" stroke="#ffff33" stroke-width="1" stroke-opacity="0.15"/>
+</svg>

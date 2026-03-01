@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
+<line x1="8.1" y1="12.62" x2="-7.3" y2="8.92" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="8.1" y1="12.62" x2="-8.59" y2="-3.35" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="8.1" y1="12.62" x2="0.79" y2="-13.71" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="8.1" y1="12.62" x2="13.53" y2="-3.55" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="-7.3" y1="8.92" x2="-8.59" y2="-3.35" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="-7.3" y1="8.92" x2="0.79" y2="-13.71" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="-7.3" y1="8.92" x2="13.53" y2="-3.55" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="-8.59" y1="-3.35" x2="0.79" y2="-13.71" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="-8.59" y1="-3.35" x2="13.53" y2="-3.55" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="0.79" y1="-13.71" x2="13.53" y2="-3.55" stroke="#66ffaa" stroke-width="0.5" stroke-opacity="0.25"/>
+<circle cx="8.1" cy="12.62" r="4" fill="#00ff88" fill-opacity="0.93"/>
+<circle cx="-7.3" cy="8.92" r="2.5" fill="#66ffaa" fill-opacity="0.74"/>
+<circle cx="-8.59" cy="-3.35" r="2.5" fill="#66ffaa" fill-opacity="0.51"/>
+<circle cx="0.79" cy="-13.71" r="2.5" fill="#66ffaa" fill-opacity="0.46"/>
+<circle cx="13.53" cy="-3.55" r="2.5" fill="#66ffaa" fill-opacity="0.63"/>
+<circle cx="0" cy="0" r="5" fill="#00ff88" fill-opacity="0.6"/>
+</svg>

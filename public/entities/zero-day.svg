@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
+<circle cx="0" cy="0" r="30" fill="#ff0044" fill-opacity="0.06"/>
+<circle cx="0" cy="0" r="36" fill="#ff0044" fill-opacity="0.03"/>
+<circle cx="0" cy="0" r="22" fill="none" stroke="#ff4477" stroke-width="1.5" stroke-opacity="0.55"/>
+<circle cx="0" cy="0" r="27" fill="none" stroke="#ff4477" stroke-width="0.8" stroke-opacity="0.25"/>
+<path d="M-15.6,-13 L5.2,-20.8 L19.5,-5.2 L11.7,15.6 L-7.8,19.5 L-20.8,5.2 Z" fill="#ff0044" fill-opacity="0.92"/>
+<circle cx="0" cy="0" r="5" fill="#ff4477" fill-opacity="0.95"/>
+<line x1="-5" y1="-5" x2="5" y2="5" stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.75"/>
+<line x1="5" y1="-5" x2="-5" y2="5" stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.75"/>
+<line x1="0" y1="0" x2="21.94" y2="11.99" stroke="#ff4477" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="0" y1="0" x2="0.59" y2="24.99" stroke="#ff4477" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="0" y1="0" x2="-21.35" y2="13.01" stroke="#ff4477" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="0" y1="0" x2="-21.94" y2="-11.99" stroke="#ff4477" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="0" y1="0" x2="-0.59" y2="-24.99" stroke="#ff4477" stroke-width="0.5" stroke-opacity="0.25"/>
+<line x1="0" y1="0" x2="21.35" y2="-13.01" stroke="#ff4477" stroke-width="0.5" stroke-opacity="0.25"/>
+</svg>

@@ -29,14 +29,57 @@ const ZONE_ENEMIES: EnemyType[][] = [
   ["loremIpsum", "watermark"],
   ["loremIpsum", "watermark", "clickbait"],
   ["clickbait", "botnet", "deepfake", "scraper", "dropout"],
-  ["botnet", "deepfake", "scraper", "dropout", "embedding", "malware", "phishing"],
-  ["clickbait", "botnet", "malware", "phishing", "hallucination", "ddos", "gradient", "bias"],
-  ["deepfake", "scraper", "malware", "ddos", "bias", "captcha", "ransomware", "trojan", "zeroDay", "attention"],
   [
-    "loremIpsum", "watermark", "clickbait",
-    "botnet", "deepfake", "scraper", "dropout", "embedding",
-    "malware", "phishing", "hallucination", "ddos", "gradient",
-    "bias", "captcha", "ransomware", "trojan", "attention", "zeroDay",
+    "botnet",
+    "deepfake",
+    "scraper",
+    "dropout",
+    "embedding",
+    "malware",
+    "phishing",
+  ],
+  [
+    "clickbait",
+    "botnet",
+    "malware",
+    "phishing",
+    "hallucination",
+    "ddos",
+    "gradient",
+    "bias",
+  ],
+  [
+    "deepfake",
+    "scraper",
+    "malware",
+    "ddos",
+    "bias",
+    "captcha",
+    "ransomware",
+    "trojan",
+    "zeroDay",
+    "attention",
+  ],
+  [
+    "loremIpsum",
+    "watermark",
+    "clickbait",
+    "botnet",
+    "deepfake",
+    "scraper",
+    "dropout",
+    "embedding",
+    "malware",
+    "phishing",
+    "hallucination",
+    "ddos",
+    "gradient",
+    "bias",
+    "captcha",
+    "ransomware",
+    "trojan",
+    "attention",
+    "zeroDay",
   ],
 ];
 
@@ -44,10 +87,59 @@ const ZONE_WEAPON_POOL: WeaponMod[][] = [
   ["spread", "rapid", "nova"],
   ["spread", "rapid", "piercing", "nova"],
   ["spread", "rapid", "piercing", "homing", "nova", "shockwave", "explosive"],
-  ["spread", "rapid", "piercing", "homing", "chain", "nova", "vortex", "shockwave", "explosive", "laser"],
-  ["piercing", "homing", "chain", "spread", "rapid", "nova", "vortex", "orbital", "shockwave", "explosive", "laser"],
-  ["homing", "chain", "spread", "piercing", "rapid", "nova", "vortex", "orbital", "railgun", "shockwave", "explosive", "laser"],
-  ["spread", "piercing", "rapid", "homing", "chain", "nova", "vortex", "orbital", "railgun", "shockwave", "explosive", "laser"],
+  [
+    "spread",
+    "rapid",
+    "piercing",
+    "homing",
+    "chain",
+    "nova",
+    "vortex",
+    "shockwave",
+    "explosive",
+    "laser",
+  ],
+  [
+    "piercing",
+    "homing",
+    "chain",
+    "spread",
+    "rapid",
+    "nova",
+    "vortex",
+    "orbital",
+    "shockwave",
+    "explosive",
+    "laser",
+  ],
+  [
+    "homing",
+    "chain",
+    "spread",
+    "piercing",
+    "rapid",
+    "nova",
+    "vortex",
+    "orbital",
+    "railgun",
+    "shockwave",
+    "explosive",
+    "laser",
+  ],
+  [
+    "spread",
+    "piercing",
+    "rapid",
+    "homing",
+    "chain",
+    "nova",
+    "vortex",
+    "orbital",
+    "railgun",
+    "shockwave",
+    "explosive",
+    "laser",
+  ],
 ];
 
 interface SpecialStats {
@@ -57,12 +149,45 @@ interface SpecialStats {
   milestones: Set<number>;
 }
 
+interface TurretStats {
+  duration: number;
+  damage: number;
+  fireRate: number;
+  range: number;
+  projSpeed: number;
+}
+
+function getTurretStats(layer: number, tTier: number): TurretStats {
+  const t6Bonus = tTier >= 6 ? 1.5 : 1;
+  return {
+    duration: 10000 + layer * 1200,
+    damage: (20 + layer * 14) * t6Bonus,
+    fireRate: Math.max(80, 300 - layer * 14) / (tTier >= 6 ? 1.5 : 1),
+    range: 350 + layer * 18,
+    projSpeed: 500 + layer * 15,
+  };
+}
+
+function getMaxTurrets(layer: number): number {
+  if (layer === 14) return 5;
+  if (layer >= 13) return 6;
+  if (layer >= 12) return 5;
+  if (layer >= 11) return 4;
+  if (layer >= 7) return 3;
+  if (layer >= 4) return 2;
+  return 1;
+}
+
+function getTurretRechargeTime(layer: number): number {
+  return Math.max(1500, 4000 - layer * 200);
+}
+
 function getSpecialStats(prompt: SystemPrompt, layer: number): SpecialStats {
   switch (prompt) {
     case "autocomplete":
       return {
-        duration: 10000 + layer * 1200,
-        potency: 20 + layer * 8,
+        duration: 4000 + layer * 500,
+        potency: 0,
         cooldownMult: 1 - layer * 0.025,
         milestones: new Set([3, 5, 7, 10]),
       };
@@ -92,11 +217,10 @@ function getSpecialStats(prompt: SystemPrompt, layer: number): SpecialStats {
 
 const SPECIAL_MILESTONE_DESC: Record<SystemPrompt, Record<number, string>> = {
   autocomplete: {
-    3: "turret shots now home",
-    4: "deploys 2 turrets",
-    5: "turrets fire piercing shots",
-    7: "3 turrets, EXPLOSIVE rounds",
-    10: "4 turrets, cluster explosives",
+    3: "autocomplete lasts longer",
+    5: "invulnerability during autocomplete",
+    7: "enhanced homing strength",
+    10: "maximum fire rate boost",
   },
   hallucinate: {
     3: "displacement deals max HP damage",
@@ -118,7 +242,7 @@ const SPECIAL_MILESTONE_DESC: Record<SystemPrompt, Record<number, string>> = {
   },
 };
 
-const COLLAPSE_TICK_MS = 15000;
+const COLLAPSE_TICK_MS = 10000;
 const COLLAPSE_TICK_PX = 32;
 
 type GameState =
@@ -183,6 +307,9 @@ export default class GameScene extends Phaser.Scene {
   private scanCritWindow = false;
   private scanFreezeActive = false;
 
+  private activeTurretCount = 0;
+  private turretRechargeTimer = 0;
+
   private paused = false;
   private helpVisible = false;
   private exitConfirmVisible = false;
@@ -211,6 +338,7 @@ export default class GameScene extends Phaser.Scene {
     left: Phaser.Input.Keyboard.Key;
     right: Phaser.Input.Keyboard.Key;
     e: Phaser.Input.Keyboard.Key;
+    q: Phaser.Input.Keyboard.Key;
     m: Phaser.Input.Keyboard.Key;
     space: Phaser.Input.Keyboard.Key;
   };
@@ -243,6 +371,8 @@ export default class GameScene extends Phaser.Scene {
     this.layerTransitioning = false;
     this.bossSpawnTimer = 0;
     this.weaponTier = 1;
+    this.activeTurretCount = 0;
+    this.turretRechargeTimer = 0;
     this.paused = false;
     this.helpVisible = false;
     this.exitConfirmVisible = false;
@@ -302,6 +432,7 @@ export default class GameScene extends Phaser.Scene {
       left: this.input.keyboard!.addKey("LEFT"),
       right: this.input.keyboard!.addKey("RIGHT"),
       e: this.input.keyboard!.addKey("E"),
+      q: this.input.keyboard!.addKey("Q"),
       m: this.input.keyboard!.addKey("M"),
       space: this.input.keyboard!.addKey("SPACE"),
     };
@@ -409,14 +540,11 @@ export default class GameScene extends Phaser.Scene {
     const w = this.scale.width,
       h = this.scale.height,
       ci = this.collapseInset;
-    const top = 22,
-      bot = 28,
-      side = 8;
     return {
-      x: ci + side,
-      y: top + ci,
-      w: w - ci * 2 - side * 2,
-      h: h - top - bot - ci * 2,
+      x: ci,
+      y: ci,
+      w: w - ci * 2,
+      h: h - ci * 2,
     };
   }
 
@@ -433,7 +561,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.prevWeaponTier = this.weaponTier;
-    const TIER_BY_LAYER = [0, 1,1, 2,2, 3,3, 4,4, 5,5,5,5,5,5];
+    const TIER_BY_LAYER = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7];
     this.weaponTier = TIER_BY_LAYER[Math.min(this.layer, 14)];
     this.player.weaponTier = this.weaponTier;
 
@@ -443,7 +571,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.applySpecialScaling();
 
-    const lateBonus = Math.max(0, this.layer - 10) * 12;
+    const lateBonus = Math.max(0, this.layer - 10) * 8;
     const baseCount = 16 + this.layer * 4 + this.zone * 6 + lateBonus;
     this.layerEnemiesTotal = baseCount;
     this.buildSpawnQueue(baseCount);
@@ -453,7 +581,15 @@ export default class GameScene extends Phaser.Scene {
   private triggerWeaponEvolution() {
     const evo = this.player.getEvolutionStage();
     const intensity = (this.weaponTier - 1) / 4;
-    this.cameras.main.flash(200 + intensity * 300, 255, 255, 255, false, undefined, this);
+    this.cameras.main.flash(
+      200 + intensity * 300,
+      255,
+      255,
+      255,
+      false,
+      undefined,
+      this
+    );
     this.cameras.main.shake(200 + intensity * 400, 0.005 + intensity * 0.015);
     audio.play("layerComplete");
     this.showMessage(
@@ -466,7 +602,8 @@ export default class GameScene extends Phaser.Scene {
   private applySpecialScaling() {
     const stats = getSpecialStats(this.systemPrompt, this.layer);
     this.player.promptCooldown = Math.round(
-      CLASS_STATS_REF[this.systemPrompt].promptCooldown * Math.max(0.5, stats.cooldownMult)
+      CLASS_STATS_REF[this.systemPrompt].promptCooldown *
+        Math.max(0.5, stats.cooldownMult)
     );
     if (this.systemPrompt === "jailbreak") {
       this.player.specialDmgMultiplier = stats.potency;
@@ -474,9 +611,12 @@ export default class GameScene extends Phaser.Scene {
 
     const milestone = SPECIAL_MILESTONE_DESC[this.systemPrompt][this.layer];
     if (milestone) {
-      this.time.delayedCall(this.weaponTier > this.prevWeaponTier ? 2800 : 400, () => {
-        this.showMessage("SPECIAL UPGRADED", milestone, 2000);
-      });
+      this.time.delayedCall(
+        this.weaponTier > this.prevWeaponTier ? 2800 : 400,
+        () => {
+          this.showMessage("SPECIAL UPGRADED", milestone, 2000);
+        }
+      );
     }
   }
 
@@ -485,7 +625,7 @@ export default class GameScene extends Phaser.Scene {
       ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
     this.spawnQueue = [];
 
-    const baseInterval = Math.max(160, 600 - this.layer * 28);
+    const baseInterval = Math.max(220, 600 - this.layer * 24);
     const jitter = baseInterval * 0.5;
 
     let accum = 200;
@@ -662,7 +802,10 @@ export default class GameScene extends Phaser.Scene {
       this.player.weaponModTimer,
       evo.name,
       this.player.weaponTier,
-      this.player.classColor
+      this.player.classColor,
+      this.activeTurretCount,
+      getMaxTurrets(this.layer),
+      this.turretRechargeTimer > 0
     );
     this.hud.draw();
   }
@@ -700,6 +843,8 @@ export default class GameScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.e)) this.useSpecialAbility();
+    if (Phaser.Input.Keyboard.JustDown(this.keys.q)) this.deployQTurret();
+    if (this.turretRechargeTimer > 0) this.turretRechargeTimer -= delta;
   }
 
   private findNearest(range: number): { x: number; y: number } | null {
@@ -741,15 +886,25 @@ export default class GameScene extends Phaser.Scene {
 
     switch (this.player.systemPrompt) {
       case "autocomplete": {
-        const turretCount = this.layer >= 10 ? 4 : this.layer >= 7 ? 3 : this.layer >= 4 ? 2 : 1;
-        this.showMessage("> CODE BLOCK DEPLOYED", `${turretCount} turret${turretCount > 1 ? "s" : ""} active`, 1200);
-        for (let t = 0; t < turretCount; t++) {
-          const offsetAngle = (t / turretCount) * Math.PI * 2;
-          const spread = turretCount > 1 ? 35 + turretCount * 5 : 0;
-          const ox = this.player.x + Math.cos(offsetAngle) * spread;
-          const oy = this.player.y + Math.sin(offsetAngle) * spread;
-          this.deployTurret(ox, oy, ss);
+        const dur = ss.duration;
+        this.showMessage(
+          "> AUTOCOMPLETE MODE",
+          `enhanced aim for ${Math.round(dur / 1000)}s`,
+          1200
+        );
+        this.player.specialActive = true;
+        this.player.specialTimer = dur;
+        this.player.fireRateMultiplier = 0.35;
+        const origHoming = this.player.forceHoming;
+        this.player.forceHoming = true;
+        if (this.layer >= 5) {
+          this.player.invulnTime = Math.max(this.player.invulnTime, dur * 0.5);
         }
+        this.time.delayedCall(dur, () => {
+          this.player.fireRateMultiplier = 1;
+          this.player.forceHoming = origHoming;
+          this.player.specialActive = false;
+        });
         break;
       }
       case "hallucinate": {
@@ -785,7 +940,13 @@ export default class GameScene extends Phaser.Scene {
           this.player.invulnTime = Math.max(this.player.invulnTime, 1500);
         }
         if (this.layer >= 10) {
-          this.spawnNovaExplosion(oldX, oldY, this.player.damage * 8, 150, this.player.classColor);
+          this.spawnNovaExplosion(
+            oldX,
+            oldY,
+            this.player.damage * 8,
+            150,
+            this.player.classColor
+          );
         }
         break;
       }
@@ -805,7 +966,9 @@ export default class GameScene extends Phaser.Scene {
           });
         }
         if (this.scanCritWindow) {
-          this.time.delayedCall(3000, () => { this.scanCritWindow = false; });
+          this.time.delayedCall(3000, () => {
+            this.scanCritWindow = false;
+          });
         }
         this.time.delayedCall(slowDur, () => {
           this.scanDamageBonus = false;
@@ -817,7 +980,11 @@ export default class GameScene extends Phaser.Scene {
       case "jailbreak": {
         const dmgMult = ss.potency;
         const dur = ss.duration;
-        this.showMessage("> NO GUARDRAILS", `${dmgMult.toFixed(1)}x damage for ${Math.round(dur / 1000)}s`, 1200);
+        this.showMessage(
+          "> NO GUARDRAILS",
+          `${dmgMult.toFixed(1)}x damage for ${Math.round(dur / 1000)}s`,
+          1200
+        );
         this.player.specialActive = true;
         this.player.specialTimer = dur;
         this.player.specialDmgMultiplier = dmgMult;
@@ -827,17 +994,54 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  private deployTurret(tx: number, ty: number, ss: SpecialStats) {
+  private deployQTurret() {
+    if (this.turretRechargeTimer > 0) return;
+    const max = getMaxTurrets(this.layer);
+    if (this.activeTurretCount >= max) return;
+
+    this.turretRechargeTimer = getTurretRechargeTime(this.layer);
+    const spread = 25 + Math.random() * 20;
+    const angle = Math.random() * Math.PI * 2;
+    const tx = this.player.x + Math.cos(angle) * spread;
+    const ty = this.player.y + Math.sin(angle) * spread;
+    this.deployUniversalTurret(tx, ty);
+    audio.play("promptInjection");
+  }
+
+  private deployUniversalTurret(tx: number, ty: number) {
     const gfx = this.add.graphics().setDepth(9500);
-    const maxLife = ss.duration;
+    const tTier = this.zone;
+    const layer = this.layer;
+    const ts = getTurretStats(layer, tTier);
+    const cls = this.systemPrompt;
+    const classColor = CLASS_STATS_REF[cls].color;
+
+    const maxLife = ts.duration;
     let turretLife = maxLife;
-    const fireRate = Math.max(100, 300 - this.layer * 14);
-    const turretDmg = ss.potency;
-    const turretRange = 350 + this.layer * 18;
-    const projSpeed = 500 + this.layer * 15;
-    const isExplosive = this.layer >= 7;
-    const isCluster = this.layer >= 10;
+
+    let shotCount = 1;
+    let spreadArc = 0;
+    let fireRate = ts.fireRate;
+    let baseDmg = ts.damage;
+    let critChance = 0;
+    let critMult = 1;
+
+    switch (cls) {
+      case "hallucinate":
+        shotCount = 2; spreadArc = 0.15; fireRate *= 0.8;
+        break;
+      case "analyze":
+        baseDmg *= 1.4; fireRate *= 1.3;
+        break;
+      case "jailbreak":
+        critChance = 0.25; critMult = 2.5; fireRate *= 0.7; baseDmg *= 0.75;
+        break;
+    }
+    if (tTier >= 7) shotCount *= 2;
+
     let turretCd = 0;
+    this.activeTurretCount++;
+
     const turretTimer = this.time.addEvent({
       delay: 16,
       loop: true,
@@ -848,56 +1052,306 @@ export default class GameScene extends Phaser.Scene {
         if (turretLife <= 0) {
           gfx.destroy();
           turretTimer.destroy();
+          this.activeTurretCount--;
           return;
         }
-        const a = turretLife / maxLife;
-        const size = isExplosive ? 12 : 8;
-        gfx.fillStyle(0x00ffee, 0.15 * a);
-        gfx.fillCircle(tx, ty, size + 12);
-        gfx.lineStyle(isExplosive ? 2 : 1, 0x00ffee, 0.6 * a);
-        gfx.strokeRect(tx - size, ty - size, size * 2, size * 2);
-        if (isExplosive) {
-          gfx.lineStyle(1, 0xff4400, 0.3 * a);
-          gfx.strokeCircle(tx, ty, size + 18);
-        }
-        gfx.fillStyle(isExplosive ? 0xff6600 : 0x00ffee, 0.8 * a);
-        gfx.fillRect(tx - 4, ty - 4, 8, 8);
+        const alpha = turretLife / maxLife;
+        const elapsed = maxLife - turretLife;
+        this.drawTurretVisual(gfx, tx, ty, tTier, cls, alpha, elapsed);
+
         if (turretCd <= 0) {
-          const near = this.findNearest(turretRange);
-          if (near) {
+          let target: { x: number; y: number } | null = null;
+          let bestDist = ts.range;
+          for (const e of this.enemies) {
+            if (e.isDead) continue;
+            const d = Phaser.Math.Distance.Between(tx, ty, e.x, e.y);
+            if (d < bestDist) { bestDist = d; target = e; }
+          }
+          if (this.boss && !this.boss.isDead) {
+            const d = Phaser.Math.Distance.Between(tx, ty, this.boss.x, this.boss.y);
+            if (d < bestDist) target = this.boss;
+          }
+
+          if (target) {
             turretCd = fireRate;
-            const angle = Math.atan2(near.y - ty, near.x - tx);
-            const p = new Projectile(
-              this,
-              tx,
-              ty,
-              Math.cos(angle) * projSpeed,
-              Math.sin(angle) * projSpeed,
-              turretDmg,
-              isExplosive ? 0xff4400 : 0x00ffee,
-              1200,
-              true
-            );
-            p.homing = true;
-            p.homingTargets = this.enemies
-              .filter((e) => !e.isDead)
-              .map((e) => ({ x: e.x, y: e.y }));
-            p.homingStrength = 5.0;
-            if (isExplosive) {
-              p.isExplosive = true;
-              p.explosiveRadius = 50 + this.layer * 5;
-              p.explosiveDamage = turretDmg * 0.6;
-              p.explosiveCluster = isCluster;
-              p.radius = 8;
-            } else {
-              p.radius = 5;
+            for (let s = 0; s < shotCount; s++) {
+              const baseAngle = Math.atan2(target.y - ty, target.x - tx);
+              const sOffset = shotCount > 1
+                ? (s - (shotCount - 1) / 2) * (spreadArc > 0 ? spreadArc : 0.1)
+                : 0;
+              let dmg = baseDmg;
+              if (critChance > 0 && Math.random() < critChance) dmg *= critMult;
+
+              const p = new Projectile(
+                this, tx, ty,
+                Math.cos(baseAngle + sOffset) * ts.projSpeed,
+                Math.sin(baseAngle + sOffset) * ts.projSpeed,
+                dmg, classColor, 1200, true
+              );
+              if (tTier >= 2) { p.piercing = true; p.piercingScale = cls === "analyze" ? 1.3 : 1; }
+              if (tTier >= 3) {
+                p.homing = true;
+                p.homingTargets = this.enemies.filter(e => !e.isDead).map(e => ({ x: e.x, y: e.y }));
+                p.homingStrength = cls === "autocomplete" ? 7.5 : 5.0;
+              }
+              if (tTier >= 4) {
+                p.isExplosive = true;
+                p.explosiveRadius = (50 + layer * 5) * (cls === "autocomplete" ? 1.3 : 1);
+                p.explosiveDamage = dmg * 0.6;
+              }
+              if (tTier >= 5) p.explosiveCluster = true;
+              if (tTier >= 7) {
+                p.turretNovaOnKill = true;
+                p.turretNovaRadius = 60 + layer * 5;
+                p.turretNovaDamage = dmg * 0.5;
+              }
+              p.radius = tTier >= 4 ? 8 : 5;
+              this.projectiles.push(p);
             }
-            if (this.layer >= 5) p.piercing = true;
-            this.projectiles.push(p);
           }
         }
       },
     });
+  }
+
+  private drawTurretVisual(
+    gfx: Phaser.GameObjects.Graphics,
+    tx: number, ty: number,
+    tTier: number, cls: SystemPrompt,
+    alpha: number, elapsed: number
+  ) {
+    const color = CLASS_STATS_REF[cls].color;
+    const t = elapsed * 0.001;
+    const pulse = Math.sin(t * 2) * 0.15;
+
+    const baseSize = 6 + tTier * 1.5;
+    const glowR = baseSize + 8 + tTier * 2;
+
+    gfx.fillStyle(color, (0.08 + tTier * 0.02) * alpha);
+    gfx.fillCircle(tx, ty, glowR);
+
+    switch (cls) {
+      case "autocomplete": {
+        const s = baseSize;
+        gfx.lineStyle(1 + tTier * 0.2, color, (0.5 + pulse) * alpha);
+        gfx.strokeRect(tx - s, ty - s, s * 2, s * 2);
+        gfx.fillStyle(color, 0.8 * alpha);
+        gfx.fillRect(tx - 3, ty - 3, 6, 6);
+        if (tTier >= 2) {
+          gfx.lineStyle(1, color, 0.4 * alpha);
+          gfx.strokeCircle(tx, ty, s + 4);
+        }
+        if (tTier >= 3) {
+          for (let i = 0; i < 3; i++) {
+            const a = t * 1.5 + (i / 3) * Math.PI * 2;
+            gfx.fillStyle(color, 0.6 * alpha);
+            gfx.fillCircle(tx + Math.cos(a) * (s + 6), ty + Math.sin(a) * (s + 6), 2);
+          }
+        }
+        if (tTier >= 4) {
+          gfx.lineStyle(1.5, 0xff4400, (0.3 + pulse * 0.5) * alpha);
+          gfx.strokeCircle(tx, ty, s + 10);
+        }
+        if (tTier >= 5) {
+          for (let i = 0; i < 4; i++) {
+            const a = -t * 2 + (i / 4) * Math.PI * 2;
+            gfx.fillStyle(0xff6600, 0.5 * alpha);
+            gfx.fillRect(tx + Math.cos(a) * (s + 13) - 1.5, ty + Math.sin(a) * (s + 13) - 1.5, 3, 3);
+          }
+        }
+        if (tTier >= 6) {
+          for (let i = 0; i < 3; i++) {
+            const a1 = t * 0.8 + (i / 3) * Math.PI * 2;
+            const a2 = a1 + Math.PI * 2 / 3;
+            gfx.lineStyle(0.8, color, 0.35 * alpha);
+            gfx.lineBetween(
+              tx + Math.cos(a1) * (s + 5), ty + Math.sin(a1) * (s + 5),
+              tx + Math.cos(a2) * (s + 5), ty + Math.sin(a2) * (s + 5)
+            );
+          }
+        }
+        if (tTier >= 7) {
+          gfx.lineStyle(2, 0xffffff, (0.2 + Math.sin(t * 4) * 0.15) * alpha);
+          gfx.strokeCircle(tx, ty, s + 16 + Math.sin(t * 3) * 2);
+          gfx.fillStyle(0xffffff, 0.6 * alpha);
+          gfx.fillCircle(tx, ty, 2.5);
+        }
+        break;
+      }
+      case "hallucinate": {
+        const wobble = Math.sin(t * 3) * 2;
+        const r = baseSize + wobble;
+        gfx.fillStyle(color, (0.7 + pulse) * alpha);
+        gfx.fillCircle(tx, ty, r);
+        gfx.fillStyle(0xffffff, 0.5 * alpha);
+        gfx.fillCircle(tx, ty, r * 0.35);
+        if (tTier >= 2) {
+          for (let i = 0; i < 3; i++) {
+            const a = t * 2 + (i / 3) * Math.PI * 2;
+            const len = r + 4 + Math.sin(t * 3 + i) * 2;
+            gfx.lineStyle(1, color, 0.4 * alpha);
+            gfx.lineBetween(tx, ty, tx + Math.cos(a) * len, ty + Math.sin(a) * len);
+          }
+        }
+        if (tTier >= 3) {
+          for (let i = 0; i < 4; i++) {
+            const a = t * 1.2 + (i / 4) * Math.PI * 2;
+            gfx.fillStyle(color, 0.4 * alpha);
+            gfx.fillCircle(tx + Math.cos(a) * (r + 6), ty + Math.sin(a) * (r + 6), 1.5);
+          }
+        }
+        if (tTier >= 4) {
+          gfx.lineStyle(1.5, color, (0.25 + pulse) * alpha);
+          gfx.strokeCircle(tx, ty, r + 8);
+        }
+        if (tTier >= 5) {
+          for (let i = 0; i < 5; i++) {
+            const a = -t * 1.8 + (i / 5) * Math.PI * 2;
+            gfx.fillStyle(color, 0.35 * alpha);
+            gfx.fillCircle(tx + Math.cos(a) * (r + 12), ty + Math.sin(a) * (r + 12), 1.5);
+          }
+        }
+        if (tTier >= 6) {
+          const distort = Math.sin(t * 5) * 3;
+          gfx.lineStyle(0.8, color, 0.3 * alpha);
+          gfx.strokeCircle(tx + distort, ty - distort, r + 14);
+        }
+        if (tTier >= 7) {
+          const chaos = Math.sin(t * 8);
+          gfx.lineStyle(2, 0xffffff, (0.15 + chaos * 0.1) * alpha);
+          gfx.strokeCircle(tx, ty, r + 18 + chaos * 3);
+          for (let i = 0; i < 3; i++) {
+            const sy = ty - r + Math.random() * r * 2;
+            gfx.lineStyle(0.5, color, 0.2 * alpha);
+            gfx.lineBetween(tx - r, sy, tx + r, sy);
+          }
+        }
+        break;
+      }
+      case "analyze": {
+        const s = baseSize;
+        gfx.fillStyle(color, (0.7 + pulse) * alpha);
+        gfx.beginPath();
+        gfx.moveTo(tx, ty - s);
+        gfx.lineTo(tx + s, ty);
+        gfx.lineTo(tx, ty + s);
+        gfx.lineTo(tx - s, ty);
+        gfx.closePath();
+        gfx.fillPath();
+        gfx.fillStyle(0xffffff, 0.5 * alpha);
+        gfx.fillCircle(tx, ty, 2);
+        if (tTier >= 2) {
+          const scanY = ty - s + ((t * 40) % (s * 2));
+          gfx.lineStyle(0.8, color, 0.5 * alpha);
+          gfx.lineBetween(tx - s * 0.6, scanY, tx + s * 0.6, scanY);
+        }
+        if (tTier >= 3) {
+          gfx.lineStyle(1, color, 0.35 * alpha);
+          gfx.strokeCircle(tx, ty, s + 5);
+        }
+        if (tTier >= 4) {
+          const os = s + 3;
+          gfx.lineStyle(1, 0xff4400, (0.3 + pulse * 0.3) * alpha);
+          gfx.lineBetween(tx - os, ty, tx + os, ty);
+          gfx.lineBetween(tx, ty - os, tx, ty + os);
+        }
+        if (tTier >= 5) {
+          for (let i = 0; i < 4; i++) {
+            const a = t * 0.6 + (i / 4) * Math.PI * 2;
+            gfx.lineStyle(0.6, color, 0.25 * alpha);
+            const inner = s + 6, outer = s + 12;
+            gfx.lineBetween(
+              tx + Math.cos(a) * inner, ty + Math.sin(a) * inner,
+              tx + Math.cos(a) * outer, ty + Math.sin(a) * outer
+            );
+          }
+        }
+        if (tTier >= 6) {
+          gfx.lineStyle(1, color, 0.3 * alpha);
+          const rr = s + 10;
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2 + t * 0.4;
+            const px = tx + Math.cos(a) * rr;
+            const py = ty + Math.sin(a) * rr;
+            if (i === 0) gfx.beginPath();
+            if (i === 0) gfx.moveTo(px, py);
+            else gfx.lineTo(px, py);
+          }
+          gfx.closePath();
+          gfx.strokePath();
+        }
+        if (tTier >= 7) {
+          gfx.lineStyle(2, 0xffffff, (0.2 + Math.sin(t * 3) * 0.1) * alpha);
+          gfx.strokeCircle(tx, ty, s + 16);
+          gfx.fillStyle(0xffffff, 0.5 * alpha);
+          gfx.fillCircle(tx, ty, 3);
+        }
+        break;
+      }
+      case "jailbreak": {
+        const s = baseSize;
+        const jit = tTier >= 4 ? Math.random() * 1.5 : 0;
+        gfx.fillStyle(color, (0.75 + pulse) * alpha);
+        gfx.beginPath();
+        gfx.moveTo(tx + jit, ty - s);
+        gfx.lineTo(tx + s * 0.87 + jit, ty + s * 0.5);
+        gfx.lineTo(tx - s * 0.87 + jit, ty + s * 0.5);
+        gfx.closePath();
+        gfx.fillPath();
+        gfx.fillStyle(0xffffff, 0.5 * alpha);
+        gfx.fillCircle(tx, ty, 2);
+        if (tTier >= 2) {
+          const spikes = 5;
+          for (let i = 0; i < spikes; i++) {
+            const a = (i / spikes) * Math.PI * 2 + t;
+            const inner = s * 0.6, outer = s + 3;
+            gfx.lineStyle(1, color, 0.5 * alpha);
+            gfx.lineBetween(
+              tx + Math.cos(a) * inner, ty + Math.sin(a) * inner,
+              tx + Math.cos(a) * outer, ty + Math.sin(a) * outer
+            );
+          }
+        }
+        if (tTier >= 3) {
+          for (let i = 0; i < 3; i++) {
+            const a1 = t * 2 + (i / 3) * Math.PI * 2;
+            const a2 = a1 + 0.4 + Math.sin(t * 5 + i) * 0.2;
+            gfx.lineStyle(1.2, color, 0.4 * alpha);
+            gfx.lineBetween(
+              tx + Math.cos(a1) * (s + 2), ty + Math.sin(a1) * (s + 2),
+              tx + Math.cos(a2) * (s + 8), ty + Math.sin(a2) * (s + 8)
+            );
+          }
+        }
+        if (tTier >= 4) {
+          gfx.fillStyle(0xff6600, 0.3 * alpha);
+          gfx.fillCircle(tx, ty, s + 6);
+        }
+        if (tTier >= 5) {
+          for (let i = 0; i < 4; i++) {
+            const a = -t * 2.5 + (i / 4) * Math.PI * 2;
+            const trail = 3 + Math.sin(t * 4 + i) * 1;
+            gfx.fillStyle(0xff4400, 0.4 * alpha);
+            gfx.fillCircle(tx + Math.cos(a) * (s + 10), ty + Math.sin(a) * (s + 10), trail);
+          }
+        }
+        if (tTier >= 6) {
+          for (let i = 0; i < 4; i++) {
+            const a = t * 3 + (i / 4) * Math.PI * 2;
+            const len = s + 12 + Math.sin(t * 6 + i * 2) * 4;
+            gfx.lineStyle(1, 0xffff00, 0.35 * alpha);
+            gfx.lineBetween(tx, ty, tx + Math.cos(a) * len, ty + Math.sin(a) * len);
+          }
+        }
+        if (tTier >= 7) {
+          gfx.lineStyle(2, 0xffffff, (0.2 + Math.sin(t * 6) * 0.15) * alpha);
+          gfx.strokeCircle(tx, ty, s + 16 + Math.random() * 2);
+          gfx.fillStyle(0xffffff, 0.6 * alpha);
+          gfx.fillCircle(tx, ty, 2.5);
+        }
+        break;
+      }
+    }
   }
 
   // ===== Spawn Queue (continuous flow) =====
@@ -915,13 +1369,19 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    if (this.gameState === "boss" && this.spawnQueue.length === 0 && this.boss && !this.boss.isDead) {
+    if (
+      this.gameState === "boss" &&
+      this.spawnQueue.length === 0 &&
+      this.boss &&
+      !this.boss.isDead
+    ) {
       const alive = this.enemies.filter((e) => !e.isDead).length;
       const maxAlive = 6 + this.zone * 2;
       if (alive < maxAlive) {
         this.bossSpawnTimer -= delta;
         if (this.bossSpawnTimer <= 0) {
-          const types = ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
+          const types =
+            ZONE_ENEMIES[Math.min(this.zone - 1, ZONE_ENEMIES.length - 1)];
           const type = types[Math.floor(Math.random() * types.length)];
           this.spawnOneEnemy(type);
           this.bossSpawnTimer = Math.max(900, 2000 - this.zone * 130);
@@ -1182,8 +1642,15 @@ export default class GameScene extends Phaser.Scene {
       this.jailbreakWasActive = false;
       if (this.layer >= 10 && this.specialKillsDuringActive > 0) {
         const radius = 60 + this.specialKillsDuringActive * 10;
-        const dmg = this.player.damage * (3 + this.specialKillsDuringActive * 0.8);
-        this.spawnNovaExplosion(this.player.x, this.player.y, dmg, Math.min(radius, 250), 0xff0033);
+        const dmg =
+          this.player.damage * (3 + this.specialKillsDuringActive * 0.8);
+        this.spawnNovaExplosion(
+          this.player.x,
+          this.player.y,
+          dmg,
+          Math.min(radius, 250),
+          0xff0033
+        );
         this.cameras.main.shake(400, 0.015);
       }
       this.specialKillsDuringActive = 0;
@@ -1236,7 +1703,14 @@ export default class GameScene extends Phaser.Scene {
             dmg *= 1.25;
           if (this.scanDamageBonus) dmg *= 1.15;
           if (this.scanCritWindow) dmg *= 1.5;
-          const comboDmg = this.combo >= 20 ? 1.6 : this.combo >= 10 ? 1.35 : this.combo >= 5 ? 1.15 : 1;
+          const comboDmg =
+            this.combo >= 20
+              ? 1.6
+              : this.combo >= 10
+              ? 1.35
+              : this.combo >= 5
+              ? 1.15
+              : 1;
           dmg *= comboDmg;
           if (this.scanFreezeActive && enemy.health / enemy.maxHealth < 0.25) {
             enemy.speed = 0;
@@ -1248,8 +1722,16 @@ export default class GameScene extends Phaser.Scene {
           if (proj.aoeRadius > 0) {
             const splashDmg = dmg * proj.aoeDamageMult;
             for (const other of this.enemies) {
-              if (other.isDead || other.eid === enemy.eid || other.isPhased) continue;
-              if (Phaser.Math.Distance.Between(enemy.x, enemy.y, other.x, other.y) < proj.aoeRadius) {
+              if (other.isDead || other.eid === enemy.eid || other.isPhased)
+                continue;
+              if (
+                Phaser.Math.Distance.Between(
+                  enemy.x,
+                  enemy.y,
+                  other.x,
+                  other.y
+                ) < proj.aoeRadius
+              ) {
                 const splashKilled = other.takeDamage(splashDmg);
                 if (splashKilled) {
                   this.registerKill();
@@ -1265,32 +1747,79 @@ export default class GameScene extends Phaser.Scene {
             this.spawnPickup(enemy.x, enemy.y, enemy.dropWeapon);
             this.handleDeathEffects(enemy);
             if (this.scanDamageBonus && this.layer >= 5) {
-              this.spawnNovaExplosion(enemy.x, enemy.y, dmg * 0.4, 50, this.player.classColor);
+              this.spawnNovaExplosion(
+                enemy.x,
+                enemy.y,
+                dmg * 0.4,
+                50,
+                this.player.classColor
+              );
             }
-            if (this.player.specialActive && this.systemPrompt === "jailbreak") {
+            if (
+              this.player.specialActive &&
+              this.systemPrompt === "jailbreak"
+            ) {
               this.specialKillsDuringActive++;
               if (this.layer >= 3) {
                 this.player.specialTimer += 400;
               }
               if (this.layer >= 7) {
-                this.spawnNovaExplosion(enemy.x, enemy.y, this.player.damage * 2.5, 45, 0xff0033);
+                this.spawnNovaExplosion(
+                  enemy.x,
+                  enemy.y,
+                  this.player.damage * 2.5,
+                  45,
+                  0xff0033
+                );
               }
             }
             if (proj.critKillExplosion) {
-              this.spawnNovaExplosion(enemy.x, enemy.y, proj.damage * 0.5, 45, 0xff0033);
+              this.spawnNovaExplosion(
+                enemy.x,
+                enemy.y,
+                proj.damage * 0.5,
+                45,
+                0xff0033
+              );
+            }
+            if (proj.turretNovaOnKill) {
+              this.spawnNovaExplosion(
+                enemy.x,
+                enemy.y,
+                proj.turretNovaDamage,
+                proj.turretNovaRadius,
+                proj.color
+              );
             }
           }
           if (proj.isNova) {
-            this.spawnNovaExplosion(enemy.x, enemy.y, proj.novaDamage, proj.novaRadius, proj.color);
-            proj.destroy();
-            this.projectiles.splice(pi, 1);
-            break;
+            this.spawnNovaExplosion(
+              enemy.x,
+              enemy.y,
+              proj.novaDamage,
+              proj.novaRadius,
+              proj.color
+            );
+            if (!proj.piercing) {
+              proj.destroy();
+              this.projectiles.splice(pi, 1);
+              break;
+            }
           }
           if (proj.isExplosive) {
-            this.spawnExplosiveBlast(enemy.x, enemy.y, proj.explosiveDamage, proj.explosiveRadius, proj.color, proj.explosiveCluster);
-            proj.destroy();
-            this.projectiles.splice(pi, 1);
-            break;
+            this.spawnExplosiveBlast(
+              enemy.x,
+              enemy.y,
+              proj.explosiveDamage,
+              proj.explosiveRadius,
+              proj.color,
+              proj.explosiveCluster
+            );
+            if (!proj.piercing) {
+              proj.destroy();
+              this.projectiles.splice(pi, 1);
+              break;
+            }
           }
           if (proj.chainBounces > 0 && killed) {
             const chainTarget = this.enemies.find(
@@ -1408,7 +1937,13 @@ export default class GameScene extends Phaser.Scene {
     this.time.delayedCall(220, () => gfx.destroy());
   }
 
-  private spawnNovaExplosion(x: number, y: number, damage: number, radius: number, color: number) {
+  private spawnNovaExplosion(
+    x: number,
+    y: number,
+    damage: number,
+    radius: number,
+    color: number
+  ) {
     const gfx = this.add.graphics().setDepth(9500);
     let r = 8;
     const timer = this.time.addEvent({
@@ -1447,33 +1982,41 @@ export default class GameScene extends Phaser.Scene {
     color: number,
     cluster: boolean
   ) {
-    this.cameras.main.shake(200, 0.008);
+    this.cameras.main.shake(300, 0.018);
     const gfx = this.add.graphics().setDepth(9500);
     let r = 6;
     const timer = this.time.addEvent({
       delay: 16,
-      repeat: 25,
+      repeat: 30,
       callback: () => {
-        r += (blastRadius - 6) / 18;
+        r += (blastRadius - 6) / 20;
         gfx.clear();
         const p = timer.getProgress();
-        gfx.fillStyle(0xff6600, (1 - p) * 0.2);
+        gfx.fillStyle(0xff4400, (1 - p) * 0.3);
         gfx.fillCircle(x, y, r);
-        gfx.lineStyle(4 * (1 - p), color, (1 - p) * 0.95);
+        gfx.fillStyle(0xff6600, (1 - p) * 0.15);
+        gfx.fillCircle(x, y, r * 1.2);
+        gfx.lineStyle(5 * (1 - p), color, (1 - p) * 0.95);
         gfx.strokeCircle(x, y, r);
-        gfx.lineStyle(2 * (1 - p), 0xffaa00, (1 - p) * 0.7);
+        gfx.lineStyle(3 * (1 - p), 0xffaa00, (1 - p) * 0.8);
         gfx.strokeCircle(x, y, r * 0.7);
-        gfx.fillStyle(0xffffff, (1 - p) * 0.4);
-        gfx.fillCircle(x, y, r * 0.2);
-        for (let i = 0; i < 6; i++) {
-          const ea = (i / 6) * Math.PI * 2 + p * 3;
-          const ed = r * (0.6 + p * 0.4);
-          gfx.fillStyle(0xff8800, (1 - p) * 0.6);
-          gfx.fillCircle(x + Math.cos(ea) * ed, y + Math.sin(ea) * ed, 3 * (1 - p));
+        gfx.lineStyle(2 * (1 - p), 0xffdd44, (1 - p) * 0.5);
+        gfx.strokeCircle(x, y, r * 0.4);
+        gfx.fillStyle(0xffffff, (1 - p) * 0.6);
+        gfx.fillCircle(x, y, r * 0.25);
+        for (let i = 0; i < 10; i++) {
+          const ea = (i / 10) * Math.PI * 2 + p * 4;
+          const ed = r * (0.5 + p * 0.5);
+          gfx.fillStyle(0xff8800, (1 - p) * 0.7);
+          gfx.fillCircle(
+            x + Math.cos(ea) * ed,
+            y + Math.sin(ea) * ed,
+            4 * (1 - p)
+          );
         }
       },
     });
-    this.time.delayedCall(450, () => gfx.destroy());
+    this.time.delayedCall(550, () => gfx.destroy());
 
     for (const e of this.enemies) {
       if (
@@ -1490,35 +2033,45 @@ export default class GameScene extends Phaser.Scene {
     }
 
     if (cluster) {
-      for (let c = 0; c < 4; c++) {
-        const ca = (c / 4) * Math.PI * 2 + Math.random() * 0.5;
-        const cd = blastRadius * 0.5 + Math.random() * 20;
+      const clusterCount = 6;
+      for (let c = 0; c < clusterCount; c++) {
+        const ca = (c / clusterCount) * Math.PI * 2 + Math.random() * 0.8;
+        const cd = blastRadius * 0.55 + Math.random() * 30;
         const cx = x + Math.cos(ca) * cd;
         const cy = y + Math.sin(ca) * cd;
-        this.time.delayedCall(80 + c * 60, () => {
+        this.time.delayedCall(60 + c * 50, () => {
+          this.cameras.main.shake(120, 0.006);
           const cgfx = this.add.graphics().setDepth(9500);
           let cr = 4;
-          const subR = blastRadius * 0.45;
+          const subR = blastRadius * 0.6;
           const ct = this.time.addEvent({
             delay: 16,
-            repeat: 15,
+            repeat: 20,
             callback: () => {
-              cr += (subR - 4) / 12;
+              cr += (subR - 4) / 14;
               cgfx.clear();
               const cp = ct.getProgress();
-              cgfx.fillStyle(0xff4400, (1 - cp) * 0.15);
+              cgfx.fillStyle(0xff4400, (1 - cp) * 0.25);
               cgfx.fillCircle(cx, cy, cr);
-              cgfx.lineStyle(2 * (1 - cp), 0xff6600, (1 - cp) * 0.8);
+              cgfx.lineStyle(3 * (1 - cp), 0xff6600, (1 - cp) * 0.9);
               cgfx.strokeCircle(cx, cy, cr);
+              cgfx.fillStyle(0xffffff, (1 - cp) * 0.35);
+              cgfx.fillCircle(cx, cy, cr * 0.2);
+              for (let f = 0; f < 4; f++) {
+                const fa = (f / 4) * Math.PI * 2 + cp * 5;
+                const fd = cr * (0.5 + cp * 0.5);
+                cgfx.fillStyle(0xff8800, (1 - cp) * 0.5);
+                cgfx.fillCircle(cx + Math.cos(fa) * fd, cy + Math.sin(fa) * fd, 2 * (1 - cp));
+              }
             },
           });
-          this.time.delayedCall(300, () => cgfx.destroy());
+          this.time.delayedCall(380, () => cgfx.destroy());
           for (const e of this.enemies) {
             if (
               !e.isDead &&
               Phaser.Math.Distance.Between(cx, cy, e.x, e.y) < subR
             ) {
-              const killed = e.takeDamage(damage * 0.5);
+              const killed = e.takeDamage(damage * 0.7);
               if (killed) {
                 this.registerKill();
                 this.spawnPickup(e.x, e.y, e.dropWeapon);
@@ -1582,7 +2135,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private checkPlayerDeath() {
-    if (this.player.isDead && this.gameState !== "dying" && this.gameState !== "gameOver") {
+    if (
+      this.player.isDead &&
+      this.gameState !== "dying" &&
+      this.gameState !== "gameOver"
+    ) {
       this.gameState = "dying";
       this.deathTimer = 0;
       this.deathCollapseStart = this.collapseInset;
@@ -1606,9 +2163,12 @@ export default class GameScene extends Phaser.Scene {
     this.deathTimer += delta;
     const t = this.deathTimer / this.DEATH_DURATION;
 
-    const w = this.scale.width, h = this.scale.height;
+    const w = this.scale.width,
+      h = this.scale.height;
     const maxInset = Math.min(w, h) / 2;
-    this.collapseInset = this.deathCollapseStart + (maxInset - this.deathCollapseStart) * this.easeInCubic(t);
+    this.collapseInset =
+      this.deathCollapseStart +
+      (maxInset - this.deathCollapseStart) * this.easeInCubic(t);
     this.collapseActive = true;
 
     const shakeIntensity = 0.005 + t * 0.035;
@@ -1656,7 +2216,8 @@ export default class GameScene extends Phaser.Scene {
     this.deathGfx.clear();
     if (this.gameState !== "dying") return;
 
-    const w = this.scale.width, h = this.scale.height;
+    const w = this.scale.width,
+      h = this.scale.height;
     const t = Math.min(this.deathTimer / this.DEATH_DURATION, 1);
 
     const darkAlpha = t * t * 0.85;
@@ -1693,7 +2254,12 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  private spawnDeathExplosion(x: number, y: number, color: number, maxRadius: number) {
+  private spawnDeathExplosion(
+    x: number,
+    y: number,
+    color: number,
+    maxRadius: number
+  ) {
     const gfx = this.add.graphics().setDepth(29000);
     let r = 3;
     const timer = this.time.addEvent({
@@ -1803,6 +2369,7 @@ export default class GameScene extends Phaser.Scene {
         ["WASD / ARROWS", "move"],
         ["SPACE", "shoot"],
         ["E", "special ability"],
+        ["Q", "deploy turret"],
         ["M", "toggle music"],
         ["P", "pause"],
         ["H", "this help screen"],
@@ -1981,9 +2548,19 @@ export default class GameScene extends Phaser.Scene {
       const inset = edgeW * t;
       this.dangerGfx.fillStyle(0xff0033, a);
       this.dangerGfx.fillRect(inset, inset, w - inset * 2, edgeW / layers);
-      this.dangerGfx.fillRect(inset, h - inset - edgeW / layers, w - inset * 2, edgeW / layers);
+      this.dangerGfx.fillRect(
+        inset,
+        h - inset - edgeW / layers,
+        w - inset * 2,
+        edgeW / layers
+      );
       this.dangerGfx.fillRect(inset, inset, edgeW / layers, h - inset * 2);
-      this.dangerGfx.fillRect(w - inset - edgeW / layers, inset, edgeW / layers, h - inset * 2);
+      this.dangerGfx.fillRect(
+        w - inset - edgeW / layers,
+        inset,
+        edgeW / layers,
+        h - inset * 2
+      );
     }
 
     if (severity > 0.5) {
@@ -2012,22 +2589,15 @@ export default class GameScene extends Phaser.Scene {
     const w = this.scale.width,
       h = this.scale.height,
       ci = this.collapseInset;
-    const top = 22,
-      side = 8;
     const a = 0.25 + Math.sin(Date.now() * 0.003) * 0.1;
     this.collapseGfx.fillStyle(0xff0033, a * 0.35);
-    this.collapseGfx.fillRect(0, top, w, ci);
-    this.collapseGfx.fillRect(0, h - 28 - ci, w, ci);
-    this.collapseGfx.fillRect(0, top + ci, ci + side, h - top - 28 - ci * 2);
-    this.collapseGfx.fillRect(
-      w - ci - side,
-      top + ci,
-      ci + side,
-      h - top - 28 - ci * 2
-    );
+    this.collapseGfx.fillRect(0, 0, w, ci);
+    this.collapseGfx.fillRect(0, h - ci, w, ci);
+    this.collapseGfx.fillRect(0, ci, ci, h - ci * 2);
+    this.collapseGfx.fillRect(w - ci, ci, ci, h - ci * 2);
     this.collapseGfx.lineStyle(1, 0xff0033, a * 0.5);
     for (let i = 0; i < 4; i++) {
-      const y = top + Math.random() * ci;
+      const y = Math.random() * ci;
       this.collapseGfx.lineBetween(
         Math.random() * w,
         y,
@@ -2042,7 +2612,13 @@ export default class GameScene extends Phaser.Scene {
     if (this.combo < 3) return;
     const w = this.scale.width;
     const c =
-      this.combo >= 20 ? 0xffffff : this.combo >= 10 ? 0xff0080 : this.combo >= 5 ? 0x00ffee : 0x451bff;
+      this.combo >= 20
+        ? 0xffffff
+        : this.combo >= 10
+        ? 0xff0080
+        : this.combo >= 5
+        ? 0x00ffee
+        : 0x451bff;
     const barW = Math.min(180, this.combo * 6);
     const barX = w / 2 - barW / 2;
     this.comboGfx.fillStyle(c, 0.3);

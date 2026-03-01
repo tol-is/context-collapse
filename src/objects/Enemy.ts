@@ -247,9 +247,9 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
     colorAccent: 0xff66ff,
   },
   zeroDay: {
-    health: 70,
-    speed: 190,
-    damage: 42,
+    health: 45,
+    speed: 170,
+    damage: 30,
     chaseRange: 900,
     attackRange: 26,
     attackCooldown: 2800,
@@ -264,8 +264,8 @@ let nextId = 1;
 export function scaleEnemy(zone: number): (cfg: EnemyConfig) => EnemyConfig {
   return (cfg) => ({
     ...cfg,
-    health: Math.round(cfg.health * Math.pow(1.18, zone - 1)),
-    speed: Math.round(cfg.speed * (1 + (zone - 1) * 0.07)),
+    health: Math.round(cfg.health * Math.pow(1.15, zone - 1)),
+    speed: Math.round(cfg.speed * (1 + (zone - 1) * 0.05)),
     damage: Math.round(cfg.damage * Math.pow(1.12, zone - 1)),
   });
 }
@@ -740,9 +740,9 @@ export default class Enemy extends Phaser.GameObjects.Container {
           if (this.zdPhaseTimer <= 0) {
             this.zdVisible = true;
             this.isPhased = false;
-            this.zdStrikeTimer = 1200;
+            this.zdStrikeTimer = 2200;
             const tpAngle = Math.atan2(py - this.y, px - this.x);
-            const tpDist = 40 + Math.random() * 30;
+            const tpDist = 70 + Math.random() * 40;
             this.x = px - Math.cos(tpAngle) * tpDist;
             this.y = py - Math.sin(tpAngle) * tpDist;
           }

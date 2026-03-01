@@ -155,7 +155,7 @@ export default class TitleScene extends Phaser.Scene {
     this.time.delayedCall(500, () => {
       this.typeText(
         ctrl,
-        "Arrows move  |  SPACE fire  |  E special  |  M mute |  H Help",
+        "Arrows move  |  SPACE fire  |  E special  |  Q turret  |  M mute  |  H Help",
         3
       );
     });

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
+<circle cx="0" cy="0" r="24" fill="#00cc44" fill-opacity="0.07"/>
+<circle cx="14.66" cy="8.01" r="4.35" fill="#00cc44" fill-opacity="0.8"/>
+<circle cx="14.66" cy="8.01" r="1.74" fill="#44ff88" fill-opacity="0.6"/>
+<circle cx="2.11" cy="12.03" r="6.29" fill="#44ff88" fill-opacity="0.8"/>
+<circle cx="2.11" cy="12.03" r="2.52" fill="#44ff88" fill-opacity="0.6"/>
+<circle cx="-7.43" cy="8.39" r="5.99" fill="#00cc44" fill-opacity="0.8"/>
+<circle cx="-7.43" cy="8.39" r="2.4" fill="#44ff88" fill-opacity="0.6"/>
+<circle cx="-14.58" cy="-0.75" r="4.3" fill="#44ff88" fill-opacity="0.8"/>
+<circle cx="-14.58" cy="-0.75" r="1.72" fill="#44ff88" fill-opacity="0.6"/>
+<circle cx="-11.24" cy="-15.67" r="6" fill="#00cc44" fill-opacity="0.8"/>
+<circle cx="-11.24" cy="-15.67" r="2.4" fill="#44ff88" fill-opacity="0.6"/>
+<circle cx="5.7" cy="-20.16" r="6.28" fill="#44ff88" fill-opacity="0.8"/>
+<circle cx="5.7" cy="-20.16" r="2.51" fill="#44ff88" fill-opacity="0.6"/>
+<circle cx="16.65" cy="-6.99" r="4.35" fill="#00cc44" fill-opacity="0.8"/>
+<circle cx="16.65" cy="-6.99" r="1.74" fill="#44ff88" fill-opacity="0.6"/>
+<line x1="-2.5" y1="5.46" x2="-9.99" y2="21.82" stroke="#44ff88" stroke-width="1" stroke-opacity="0.35"/>
+<line x1="-5.96" y1="-0.69" x2="-23.84" y2="-2.75" stroke="#44ff88" stroke-width="1" stroke-opacity="0.35"/>
+<line x1="-1.19" y1="-5.88" x2="-4.75" y2="-23.53" stroke="#44ff88" stroke-width="1" stroke-opacity="0.35"/>
+<line x1="5.23" y1="-2.95" x2="20.91" y2="-11.78" stroke="#44ff88" stroke-width="1" stroke-opacity="0.35"/>
+<line x1="4.42" y1="4.06" x2="17.67" y2="16.24" stroke="#44ff88" stroke-width="1" stroke-opacity="0.35"/>
+<line x1="14.66" y1="8.01" x2="2.11" y2="12.03" stroke="#44ff88" stroke-width="0.5" stroke-opacity="0.2"/>
+<line x1="2.11" y1="12.03" x2="-7.43" y2="8.39" stroke="#44ff88" stroke-width="0.5" stroke-opacity="0.2"/>
+<line x1="-7.43" y1="8.39" x2="-14.58" y2="-0.75" stroke="#44ff88" stroke-width="0.5" stroke-opacity="0.2"/>
+<line x1="-14.58" y1="-0.75" x2="-11.24" y2="-15.67" stroke="#44ff88" stroke-width="0.5" stroke-opacity="0.2"/>
+<line x1="-11.24" y1="-15.67" x2="5.7" y2="-20.16" stroke="#44ff88" stroke-width="0.5" stroke-opacity="0.2"/>
+<line x1="5.7" y1="-20.16" x2="16.65" y2="-6.99" stroke="#44ff88" stroke-width="0.5" stroke-opacity="0.2"/>
+<line x1="16.65" y1="-6.99" x2="14.66" y2="8.01" stroke="#44ff88" stroke-width="0.5" stroke-opacity="0.2"/>
+</svg>

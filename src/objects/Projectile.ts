@@ -27,6 +27,9 @@ export default class Projectile extends Phaser.GameObjects.Container {
   public critKillExplosion = false;
   public aoeRadius = 0;
   public aoeDamageMult = 0;
+  public turretNovaOnKill = false;
+  public turretNovaRadius = 0;
+  public turretNovaDamage = 0;
 
   private gfx: Phaser.GameObjects.Graphics;
   public color: number;

@@ -41,7 +41,7 @@ const BOSS_INDEX: Record<BossType, number> = {
   singularity: 6,
 };
 
-const BASE_HP = [1000, 3600, 4800, 6000, 7500, 9000, 14000];
+const BASE_HP = [1400, 5000, 8000, 12000, 16000, 22000, 32000];
 const SPEED_MULT = [1.1, 1.3, 1.5, 1.65, 1.8, 1.95, 2.2];
 
 interface HexCell {

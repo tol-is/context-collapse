@@ -194,6 +194,26 @@ export const WEAPON_EVOLUTIONS: Record<SystemPrompt, EvolutionStage[]> = {
       critChance: 0, critMultiplier: 1, executeThreshold: 0,
       aoeRadius: 90, aoeDamageMult: 0.6,
     },
+    {
+      name: "SYNTAX TEMPEST",
+      projectileCount: 8, burstDelay: 0, spreadArc: 0.28,
+      damageMultiplier: 8.0, fireRateMultiplier: 0.45, speedMultiplier: 1.5,
+      projectileRadius: 14, lifetimeMultiplier: 1.5,
+      homing: true, homingStrength: 30.0,
+      piercing: true, piercingScale: 1.7,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 120, aoeDamageMult: 0.7,
+    },
+    {
+      name: "SYNTAX SINGULARITY",
+      projectileCount: 12, burstDelay: 0, spreadArc: 0.35,
+      damageMultiplier: 12.0, fireRateMultiplier: 0.35, speedMultiplier: 1.6,
+      projectileRadius: 16, lifetimeMultiplier: 1.6,
+      homing: true, homingStrength: 40.0,
+      piercing: true, piercingScale: 2.0,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 160, aoeDamageMult: 0.8,
+    },
   ],
   hallucinate: [
     {
@@ -245,6 +265,26 @@ export const WEAPON_EVOLUTIONS: Record<SystemPrompt, EvolutionStage[]> = {
       piercing: true, piercingScale: 1.2,
       critChance: 0, critMultiplier: 1, executeThreshold: 0,
       aoeRadius: 75, aoeDamageMult: 0.5,
+    },
+    {
+      name: "PLOT MAELSTROM",
+      projectileCount: 22, burstDelay: 0, spreadArc: 0.65,
+      damageMultiplier: 3.5, fireRateMultiplier: 0.32, speedMultiplier: 1.4,
+      projectileRadius: 9, lifetimeMultiplier: 1.2,
+      homing: true, homingStrength: 10.0,
+      piercing: true, piercingScale: 1.4,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 100, aoeDamageMult: 0.6,
+    },
+    {
+      name: "PLOT APOCALYPSE",
+      projectileCount: 30, burstDelay: 0, spreadArc: 0.8,
+      damageMultiplier: 5.0, fireRateMultiplier: 0.25, speedMultiplier: 1.5,
+      projectileRadius: 10, lifetimeMultiplier: 1.3,
+      homing: true, homingStrength: 12.0,
+      piercing: true, piercingScale: 1.6,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0,
+      aoeRadius: 130, aoeDamageMult: 0.7,
     },
   ],
   analyze: [
@@ -298,6 +338,26 @@ export const WEAPON_EVOLUTIONS: Record<SystemPrompt, EvolutionStage[]> = {
       critChance: 0, critMultiplier: 1, executeThreshold: 0.65,
       aoeRadius: 100, aoeDamageMult: 0.55,
     },
+    {
+      name: "DATA OBLITERATOR",
+      projectileCount: 8, burstDelay: 0, spreadArc: 0.18,
+      damageMultiplier: 10.0, fireRateMultiplier: 0.5, speedMultiplier: 1.45,
+      projectileRadius: 18, lifetimeMultiplier: 1.5,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 2.2,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0.7,
+      aoeRadius: 130, aoeDamageMult: 0.65,
+    },
+    {
+      name: "DATA SINGULARITY",
+      projectileCount: 12, burstDelay: 0, spreadArc: 0.24,
+      damageMultiplier: 16.0, fireRateMultiplier: 0.4, speedMultiplier: 1.55,
+      projectileRadius: 22, lifetimeMultiplier: 1.6,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 2.8,
+      critChance: 0, critMultiplier: 1, executeThreshold: 0.8,
+      aoeRadius: 170, aoeDamageMult: 0.75,
+    },
   ],
   jailbreak: [
     {
@@ -350,6 +410,26 @@ export const WEAPON_EVOLUTIONS: Record<SystemPrompt, EvolutionStage[]> = {
       critChance: 0.45, critMultiplier: 3.5, executeThreshold: 0,
       aoeRadius: 65, aoeDamageMult: 0.45,
     },
+    {
+      name: "STACK OVERFLOW",
+      projectileCount: 32, burstDelay: 0, spreadArc: 0.24,
+      damageMultiplier: 3.5, fireRateMultiplier: 0.4, speedMultiplier: 1.5,
+      projectileRadius: 7, lifetimeMultiplier: 0.9,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.5,
+      critChance: 0.55, critMultiplier: 4.0, executeThreshold: 0,
+      aoeRadius: 85, aoeDamageMult: 0.55,
+    },
+    {
+      name: "KERNEL PANIC",
+      projectileCount: 42, burstDelay: 0, spreadArc: 0.26,
+      damageMultiplier: 5.5, fireRateMultiplier: 0.3, speedMultiplier: 1.6,
+      projectileRadius: 8, lifetimeMultiplier: 0.95,
+      homing: false, homingStrength: 0,
+      piercing: true, piercingScale: 1.8,
+      critChance: 0.65, critMultiplier: 5.0, executeThreshold: 0,
+      aoeRadius: 110, aoeDamageMult: 0.65,
+    },
   ],
 };
 
@@ -379,6 +459,8 @@ export default class Cursor extends Phaser.GameObjects.Container {
   public specialActive = false;
   public specialTimer = 0;
   public specialDmgMultiplier = 3;
+  public fireRateMultiplier = 1;
+  public forceHoming = false;
 
   private gfx: Phaser.GameObjects.Graphics;
   private glowGfx: Phaser.GameObjects.Graphics;
@@ -501,11 +583,12 @@ export default class Cursor extends Phaser.GameObjects.Container {
   ): boolean {
     if (this.fireCooldown > 0 || this.isDead) return false;
 
+    const projCountBefore = projectiles.length;
     const mod = this.weaponMod;
     const tier = this.weaponTier;
     const evo = this.getEvolutionStage();
-    const tierDmg = mod ? 1 + (tier - 1) * 0.16 : 1;
-    const rate =
+    const tierDmg = mod ? 1 + (tier - 1) * 0.25 : 1;
+    const baseRate =
       mod === "rapid"
         ? this.fireRate * Math.max(0.15, 0.35 - tier * 0.04)
         : mod === "vortex"
@@ -513,7 +596,7 @@ export default class Cursor extends Phaser.GameObjects.Container {
           : mod
             ? this.fireRate
             : this.fireRate * evo.fireRateMultiplier;
-    this.fireCooldown = rate;
+    this.fireCooldown = baseRate * this.fireRateMultiplier;
 
     const angle = Math.atan2(this.aimY - this.y, this.aimX - this.x);
     const speed = (560 + tier * 30) * (mod ? 1 : evo.speedMultiplier);
@@ -646,61 +729,68 @@ export default class Cursor extends Phaser.GameObjects.Container {
         projectiles.push(p);
       }
     } else if (mod === "orbital") {
-      const orbCount = 3 + Math.floor(tier / 2);
-      for (let i = 0; i < orbCount; i++) {
-        const delay = i * 120;
-        const targetAngle = angle + (Math.random() - 0.5) * 0.8;
-        const dist = 80 + Math.random() * 60;
-        const ox = this.x + Math.cos(targetAngle) * dist;
-        const oy = this.y + Math.sin(targetAngle) * dist;
-        this.scene.time.delayedCall(delay, () => {
-          if (!this.scene) return;
-          const p = new Projectile(
-            this.scene,
-            ox,
-            oy - 120,
-            0,
-            speed * 1.2,
-            finalDmg * (1.8 + tier * 0.3),
-            color,
-            800,
-            true
-          );
-          p.isNova = true;
-          p.novaRadius = 45 + tier * 12;
-          p.novaDamage = finalDmg * (0.8 + tier * 0.15);
-          p.radius = 10;
-          projectiles.push(p);
-        });
+      const orbCount = 5 + Math.floor(tier / 2) + (tier >= 5 ? 3 : 0);
+      const waves = tier >= 5 ? 2 : 1;
+      for (let w = 0; w < waves; w++) {
+        for (let i = 0; i < orbCount; i++) {
+          const delay = w * 300 + i * 80;
+          const targetAngle = angle + (Math.random() - 0.5) * 1.4;
+          const dist = 60 + Math.random() * 100 + w * 40;
+          const ox = this.x + Math.cos(targetAngle) * dist;
+          const oy = this.y + Math.sin(targetAngle) * dist;
+          this.scene.time.delayedCall(delay, () => {
+            if (!this.scene) return;
+            const p = new Projectile(
+              this.scene,
+              ox,
+              oy - 150,
+              0,
+              speed * 1.6,
+              finalDmg * (3.0 + tier * 0.5),
+              color,
+              900,
+              true
+            );
+            p.isExplosive = true;
+            p.explosiveRadius = 70 + tier * 18;
+            p.explosiveDamage = finalDmg * (1.8 + tier * 0.3);
+            p.explosiveCluster = tier >= 4;
+            p.isNova = true;
+            p.novaRadius = 70 + tier * 18;
+            p.novaDamage = finalDmg * (1.5 + tier * 0.25);
+            p.radius = 13;
+            projectiles.push(p);
+          });
+        }
       }
-      this.fireCooldown = this.fireRate * 2.5;
+      this.fireCooldown = this.fireRate * 2.2;
     } else if (mod === "explosive") {
-      const count = tier >= 5 ? 5 : tier >= 3 ? 3 : 1;
-      const arc = count > 1 ? 0.12 * count : 0;
+      const count = tier >= 5 ? 7 : tier >= 3 ? 5 : 3;
+      const arc = 0.14 * count;
       for (let i = 0; i < count; i++) {
         const spread =
           count > 1 ? (i - (count - 1) / 2) * ((arc * 2) / (count - 1)) : 0;
-        const vx = Math.cos(angle + spread) * speed * 0.55;
-        const vy = Math.sin(angle + spread) * speed * 0.55;
+        const vx = Math.cos(angle + spread) * speed * 0.6;
+        const vy = Math.sin(angle + spread) * speed * 0.6;
         const p = new Projectile(
           this.scene,
           this.x,
           this.y,
           vx,
           vy,
-          finalDmg * (1.8 + tier * 0.3),
+          finalDmg * (2.8 + tier * 0.5),
           color,
-          lifetime * 1.4,
+          lifetime * 1.6,
           true
         );
         p.isExplosive = true;
-        p.explosiveRadius = 60 + tier * 12;
-        p.explosiveDamage = finalDmg * (0.9 + tier * 0.2);
-        p.explosiveCluster = tier >= 5;
-        p.radius = 10;
+        p.explosiveRadius = 90 + tier * 18;
+        p.explosiveDamage = finalDmg * (1.6 + tier * 0.3);
+        p.explosiveCluster = tier >= 3;
+        p.radius = 12;
         projectiles.push(p);
       }
-      this.fireCooldown = this.fireRate * (tier >= 3 ? 2.2 : 1.8);
+      this.fireCooldown = this.fireRate * (tier >= 3 ? 1.8 : 1.5);
     } else if (mod === "laser") {
       const count = tier >= 5 ? 3 : tier >= 3 ? 2 : 1;
       for (let i = 0; i < count; i++) {
@@ -727,24 +817,33 @@ export default class Cursor extends Phaser.GameObjects.Container {
       }
       this.fireCooldown = this.fireRate * Math.max(0.12, 0.22 - tier * 0.02);
     } else if (mod === "railgun") {
-      const vx = Math.cos(angle) * speed * 2.0;
-      const vy = Math.sin(angle) * speed * 2.0;
-      const p = new Projectile(
-        this.scene,
-        this.x,
-        this.y,
-        vx,
-        vy,
-        finalDmg * (2.5 + tier * 0.35),
-        color,
-        lifetime * 1.5,
-        true
-      );
-      p.piercing = true;
-      p.piercingScale = 2.0 + tier * 0.3;
-      p.radius = 10;
-      projectiles.push(p);
-      this.fireCooldown = this.fireRate * 3.2;
+      const shots = tier >= 5 ? 3 : tier >= 3 ? 2 : 1;
+      const arc = shots > 1 ? 0.06 : 0;
+      for (let i = 0; i < shots; i++) {
+        const spread = shots > 1 ? (i - (shots - 1) / 2) * arc : 0;
+        const vx = Math.cos(angle + spread) * speed * 3.0;
+        const vy = Math.sin(angle + spread) * speed * 3.0;
+        const p = new Projectile(
+          this.scene,
+          this.x,
+          this.y,
+          vx,
+          vy,
+          finalDmg * (5.0 + tier * 0.8),
+          color,
+          lifetime * 2.0,
+          true
+        );
+        p.piercing = true;
+        p.piercingScale = 3.5 + tier * 0.5;
+        p.isExplosive = true;
+        p.explosiveRadius = 55 + tier * 14;
+        p.explosiveDamage = finalDmg * (1.5 + tier * 0.25);
+        p.explosiveCluster = tier >= 4;
+        p.radius = 14;
+        projectiles.push(p);
+      }
+      this.fireCooldown = this.fireRate * 2.8;
     } else if (mod === "shockwave") {
       const count = 16 + tier * 4;
       for (let i = 0; i < count; i++) {
@@ -902,6 +1001,17 @@ export default class Cursor extends Phaser.GameObjects.Container {
       }
     }
 
+    if (this.forceHoming && enemies) {
+      for (let i = projCountBefore; i < projectiles.length; i++) {
+        const p = projectiles[i];
+        if (!p.homing) {
+          p.homing = true;
+          p.homingTargets = enemies;
+          p.homingStrength = 4.0;
+        }
+      }
+    }
+
     audio.play("shoot");
     return true;
   }
@@ -955,6 +1065,8 @@ export default class Cursor extends Phaser.GameObjects.Container {
       if (this.specialTimer <= 0) {
         this.specialActive = false;
         this.specialTimer = 0;
+        this.fireRateMultiplier = 1;
+        this.forceHoming = false;
       }
     }
 
