@@ -14,6 +14,7 @@ export default class HUD {
   private texts: Record<string, Phaser.GameObjects.Text> = {};
 
   private contextLevel = 0;
+  private displayContextLevel = 0;
   private health = 100;
   private maxHealth = 100;
   private tokens = 0;
@@ -157,8 +158,16 @@ export default class HUD {
     this.gfx.clear();
     this.contextGfx.clear();
 
+    // Lerp display value toward actual context level
+    const lerpSpeed = this.displayContextLevel > this.contextLevel ? 8 : 12;
+    this.displayContextLevel = Phaser.Math.Linear(
+      this.displayContextLevel,
+      this.contextLevel,
+      Math.min(1, lerpSpeed * 0.016)
+    );
+
     // Minimal 2px context line at very top
-    const pct = Phaser.Math.Clamp(this.contextLevel / 100, 0, 1);
+    const pct = Phaser.Math.Clamp(this.displayContextLevel / 100, 0, 1);
     const barColor =
       pct > 0.8
         ? 0xff0033
@@ -181,7 +190,7 @@ export default class HUD {
 
     // Top-left: layer + context %
     this.texts.layer.setText(`L${this.layer}`).setPosition(8, 6);
-    const ctxStr = Math.floor(this.contextLevel) + "%";
+    const ctxStr = Math.floor(this.displayContextLevel) + "%";
     this.texts.ctxPct.setText(ctxStr).setPosition(50, 8);
     this.texts.ctxPct.setColor(this.collapseActive ? "#ff0033" : "#FFFFFF");
 

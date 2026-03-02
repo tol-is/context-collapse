@@ -1558,6 +1558,9 @@ export default class GameScene extends Phaser.Scene {
         p.collected = true;
         if (p.type === "token") {
           this.player.tokens++;
+          this.collapseTickTimer = Math.max(0, this.collapseTickTimer - 500);
+          this.contextLevel =
+            (this.collapseTickTimer / COLLAPSE_TICK_MS) * 100;
           audio.play("tokenCollect");
         } else if (p.type === "health") {
           this.player.heal(20 + this.zone * 8);
